@@ -252,8 +252,7 @@ function App() {
   return (
     <main className="app">
       <header>
-        <h1>Storytelling as Space</h1>
-        <p>Turn written imagery into editable spatial assets.</p>
+        <h1 className="app-title">Storytelling as Space</h1>
       </header>
 
       <div className="workspace">

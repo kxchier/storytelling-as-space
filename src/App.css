@@ -18,6 +18,15 @@ body {
   box-sizing: border-box;
 }
 
+.app-title {
+  margin: 0;
+  font-family: "Love Ya Like A Sister", cursive;
+  font-size: 60px;
+  font-weight: 100;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
 header {
   margin-bottom: 20px;
 }
@@ -50,6 +59,13 @@ header p {
   box-shadow: 0 12px 28px rgba(80, 55, 35, 0.08);
   box-sizing: border-box;
   min-width: 0;
+}
+
+.empty {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #8a796b;
+  margin: 4px 0 10px;
 }
 
 .left-panel,
@@ -127,6 +143,7 @@ button {
   color: white;
   font-family: inherit;
   cursor: pointer;
+  margin-bottom: 12px;
 }
 
 button:disabled {
