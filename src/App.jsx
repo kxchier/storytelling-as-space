@@ -10,31 +10,38 @@ import "./App.css";
 const MIN_SOLID_HITBOX_SCALE = 0.6;
 
 function createAssetHitbox(asset) {
-  const colliderScale = asset.colliderScale ?? 0.75;
+  const colliderScale = asset.colliderScale ?? 0.9;
   const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
-  const hitboxHeightScale = asset.hitboxHeightScale ?? 1;
-  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
+  const baseDepthScale = asset.hitboxDepthScale ?? 0.7;
+
   const hitboxWidthScale = asset.isSolid
     ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
     : baseWidthScale;
+
   const hitboxDepthScale = asset.isSolid
     ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
     : baseDepthScale;
-  const hitboxOffsetX = asset.hitboxOffsetX ?? 0;
-  const hitboxOffsetY = asset.hitboxOffsetY ?? 0;
-  const hitboxOffsetZ = asset.hitboxOffsetZ ?? 0;
-  const hitboxWidth = asset.width * colliderScale * hitboxWidthScale;
-  const hitboxHeight = asset.height * colliderScale * hitboxHeightScale;
-  const hitboxDepth = asset.width * colliderScale * hitboxDepthScale;
+
+  const width = asset.width * colliderScale * hitboxWidthScale;
+  const height = asset.height * colliderScale * (asset.hitboxHeightScale ?? 1);
+  const depth = asset.width * colliderScale * hitboxDepthScale;
+
+  const offsetX = asset.hitboxOffsetX ?? 0;
+  const offsetY = asset.hitboxOffsetY ?? 0;
+  const offsetZ = asset.hitboxOffsetZ ?? 0;
 
   return {
-    id: asset.placedId,
-    x: asset.x + hitboxOffsetX,
-    y: asset.y + hitboxHeight / 2 + hitboxOffsetY,
-    z: asset.z + hitboxOffsetZ,
-    halfWidth: hitboxWidth / 2,
-    halfHeight: hitboxHeight / 2,
-    halfDepth: hitboxDepth / 2,
+    x: asset.x + offsetX,
+    y: asset.y + offsetY,
+    z: asset.z + offsetZ,
+
+    width,
+    height,
+    depth,
+
+    halfWidth: width / 2,
+    halfHeight: height / 2,
+    halfDepth: depth / 2,
   };
 }
 
@@ -50,55 +57,57 @@ function App() {
   const [selectedPlacedAssetId, setSelectedPlacedAssetId] = useState(null);
 
   const [loadingAsset, setLoadingAsset] = useState(false);
+  const [loadingParse, setLoadingParse] = useState(false);
 
-  function parseScene() {
-    const parsedAssets = [
-      {
+  async function parseScene() {
+    if (!sceneText.trim()) return;
+  
+    setLoadingParse(true);
+  
+    try {
+      const response = await fetch("http://localhost:3001/parse-scene", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sceneText }),
+      });
+  
+      const data = await response.json();
+  
+      const parsedAssets = data.assets.map((asset) => ({
         id: crypto.randomUUID(),
-        name: "school bag",
-        category: "object",
-        placementType: "sprite",
-        prompt:
-          "A single isolated isometric 2D game asset of a navy school bag, 3/4 top-down view, front-facing isometric sprite, cozy illustrated style, transparent background, no white background, no floor, no wall, no room",
-      },
-      {
-        id: crypto.randomUUID(),
-        name: "desk",
-        category: "furniture",
-        placementType: "floor",
-        prompt:
-          "A single isolated isometric 2D game asset of a wooden student desk, 3/4 top-down view, front-facing isometric sprite, cozy illustrated style, transparent background, no white background, no floor, no wall, no room",
-      },
-      {
-        id: crypto.randomUUID(),
-        name: "mug of tea",
-        category: "object",
-        placementType: "sprite",
-        prompt:
-          "A single isolated isometric 2D game asset of a warm mug of tea, 3/4 top-down view, front-facing isometric sprite, cozy illustrated style, transparent background, no white background, no floor, no wall, no room",
-      },
-    ];
-
-    setAssetCandidates(parsedAssets);
-    setSelectedAsset(parsedAssets[0]);
+        name: asset.name,
+        category: asset.category,
+        placementType: asset.placementType ?? "sprite",
+        prompt: asset.prompt,
+      }));
+  
+      setAssetCandidates(parsedAssets);
+      setSelectedAsset(parsedAssets[0] ?? null);
+    } catch (error) {
+      console.error("Error parsing scene:", error);
+    } finally {
+      setLoadingParse(false);
+    }
   }
 
   function updateSelectedAssetPrompt(newPrompt) {
     if (!selectedAsset) return;
-
+  
     const updatedAsset = {
       ...selectedAsset,
       prompt: newPrompt,
     };
-
+  
     setSelectedAsset(updatedAsset);
-
+  
     setAssetCandidates((previousCandidates) =>
       previousCandidates.map((asset) =>
         asset.id === updatedAsset.id ? updatedAsset : asset
       )
     );
-
+  
     setAssetLibrary((previousLibrary) =>
       previousLibrary.map((asset) =>
         asset.id === updatedAsset.id ? updatedAsset : asset
@@ -168,16 +177,16 @@ function App() {
       x: -1 + offset,
       y: 0.05,
       z: 0 + offset,
-      width: 2.4,
-      height: 2.4,
+      width: 2,
+      height: 2,
       isSolid: true,
       colliderScale: 0.75,
-      hitboxWidthScale: asset.category === "furniture" ? 1 : 0.8,
-      hitboxHeightScale: 1,
-      hitboxDepthScale: asset.category === "furniture" ? 1 : 0.6,
-      hitboxOffsetX: 0,
+      hitboxWidthScale: 0.5,
+      hitboxHeightScale: 0.5,
+      hitboxDepthScale: 0.5,
+      hitboxOffsetX: -0.35,
       hitboxOffsetY: 0,
-      hitboxOffsetZ: 0,
+      hitboxOffsetZ: -0.35,
     };
 
     setPlacedAssets((previousPlacedAssets) => [
@@ -237,7 +246,13 @@ function App() {
             rows={7}
           />
 
-          <button onClick={parseScene}>Parse Scene</button>
+          <button
+            className="button-bottom-margin"
+            onClick={parseScene}
+            disabled={loadingParse}
+          >
+            {loadingParse ? "Parsing..." : "Parse Scene"}
+          </button>
 
           <h2>Asset Candidates</h2>
 
@@ -348,7 +363,7 @@ function App() {
                         <input
                           className="cozy-slider"
                           type="range"
-                          min="0.4"
+                          min="-1"
                           max="1"
                           step="0.05"
                           value={asset.colliderScale ?? 0.75}
@@ -514,7 +529,7 @@ function App() {
                 rows={6}
               />
 
-              <button onClick={generateSelectedAsset} disabled={loadingAsset}>
+              <button className="button-bottom-margin" onClick={generateSelectedAsset} disabled={loadingAsset}>
                 {loadingAsset ? "Generating..." : "Generate / Regenerate"}
               </button>
 

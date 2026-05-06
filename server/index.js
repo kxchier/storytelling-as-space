@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import Replicate from "replicate";
+import { spawn } from "child_process";
 
 dotenv.config();
 
@@ -13,6 +14,72 @@ app.use(express.json());
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
+});
+
+function buildAssetPrompt(asset) {
+  return [
+    `A single isolated isometric 2D game asset of ${asset.name}.`,
+    "The image should contain exactly one object.",
+    "3/4 top-down view.",
+    "Front-facing isometric sprite.",
+    "Cozy illustrated style.",
+    "Centered object only.",
+    "Transparent background.",
+    "No white background.",
+    "No floor.",
+    "No wall.",
+    "No room.",
+    "No windows.",
+    "No environment.",
+    "No background scene.",
+    "No extra objects.",
+    "Sticker-like isolated asset."
+  ].join(" ");
+}
+
+app.post("/parse-scene", async (req, res) => {
+  const { sceneText } = req.body;
+
+  if (!sceneText || !sceneText.trim()) {
+    return res.status(400).json({ error: "Missing sceneText" });
+  }
+
+  const python = spawn("python3", ["server/parseScene.py"]);
+
+  let output = "";
+  let errorOutput = "";
+
+  python.stdout.on("data", (data) => {
+    output += data.toString();
+  });
+
+  python.stderr.on("data", (data) => {
+    errorOutput += data.toString();
+  });
+
+  python.on("close", (code) => {
+    if (code !== 0) {
+      console.error("Python parser error:", errorOutput);
+      return res.status(500).json({ error: "Failed to parse scene" });
+    }
+
+    try {
+      const parsed = JSON.parse(output);
+    
+      const assetsWithPrompts = parsed.assets.map((asset) => ({
+        ...asset,
+        prompt: buildAssetPrompt(asset),
+      }));
+    
+      res.json({ assets: assetsWithPrompts });
+    } catch (error) {
+      console.error("Could not parse Python output:", error);
+      res.status(500).json({ error: "Invalid parser output" });
+    }
+  });
+
+  python.stdin.write(sceneText);
+  python.stdin.end();
 });
 
 app.post("/generate-texture", async (req, res) => {
