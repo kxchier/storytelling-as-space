@@ -12,17 +12,6 @@ function App() {
     "She dropped her school bag beside the desk. Rain tapped against the window. A mug of tea sat near a stack of books."
   );
 
-  const [floorPrompt, setFloorPrompt] = useState(
-    "Warm wooden floor texture, illustrated game style"
-  );
-  
-  const [wallPrompt, setWallPrompt] = useState(
-    "Soft cream wallpaper texture, illustrated game style"
-  );
-
-  const [floorTextureUrl, setFloorTextureUrl] = useState("");
-  const [wallTextureUrl, setWallTextureUrl] = useState("");
-
   const [assetCandidates, setAssetCandidates] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetLibrary, setAssetLibrary] = useState([]);
@@ -31,42 +20,6 @@ function App() {
 
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [loadingAsset, setLoadingAsset] = useState(false);
-
-  async function generateRoomTextures() {
-    setLoadingRoom(true);
-  
-    try {
-      const floorResponse = await fetch("http://localhost:3001/generate-texture", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: floorPrompt,
-        }),
-      });
-  
-      const wallResponse = await fetch("http://localhost:3001/generate-texture", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: wallPrompt,
-        }),
-      });
-  
-      const floorData = await floorResponse.json();
-      const wallData = await wallResponse.json();
-  
-      setFloorTextureUrl(floorData.imageUrl);
-      setWallTextureUrl(wallData.imageUrl);
-    } catch (error) {
-      console.error("Error generating room textures:", error);
-    } finally {
-      setLoadingRoom(false);
-    }
-  }
 
   function parseScene() {
     const parsedAssets = [
@@ -267,25 +220,6 @@ function App() {
 
           <button onClick={parseScene}>Parse Scene</button>
 
-          <h2>Floor Texture Prompt</h2>
-          <textarea
-            value={floorPrompt}
-            onChange={(event) => setFloorPrompt(event.target.value)}
-            rows={4}
-          />
-
-          <h2>Wall Texture Prompt</h2>
-
-          <textarea
-            value={wallPrompt}
-            onChange={(event) => setWallPrompt(event.target.value)}
-            rows={4}
-          />
-
-          <button onClick={generateRoomTextures} disabled={loadingRoom}>
-            {loadingRoom ? "Generating Textures..." : "Generate Floor + Wall Textures"}
-          </button>
-
           <h2>Asset Candidates</h2>
 
           {assetCandidates.length === 0 ? (
@@ -326,10 +260,7 @@ function App() {
             <directionalLight position={[5, 8, 5]} intensity={1} />
 
             <group position={[0, -2, 0]}>
-              <IsometricRoom
-                floorTextureUrl={floorTextureUrl}
-                wallTextureUrl={wallTextureUrl}
-              />
+              <IsometricRoom />
 
               {placedAssets.map((asset) => (
                 <PlacedAsset3D key={asset.placedId} asset={asset} />
