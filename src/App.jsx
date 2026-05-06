@@ -1,11 +1,42 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 
 import IsometricRoom from "./components/IsometricRoom";
-import PlacedAsset3D from "./components/PlacedAsset3d";
+import PlacedAsset3D from "./components/PlacedAsset3D";
 import Player from "./components/Player";
 
 import "./App.css";
+
+const MIN_SOLID_HITBOX_SCALE = 0.6;
+
+function createAssetHitbox(asset) {
+  const colliderScale = asset.colliderScale ?? 0.75;
+  const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
+  const hitboxHeightScale = asset.hitboxHeightScale ?? 1;
+  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
+  const hitboxWidthScale = asset.isSolid
+    ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
+    : baseWidthScale;
+  const hitboxDepthScale = asset.isSolid
+    ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
+    : baseDepthScale;
+  const hitboxOffsetX = asset.hitboxOffsetX ?? 0;
+  const hitboxOffsetY = asset.hitboxOffsetY ?? 0;
+  const hitboxOffsetZ = asset.hitboxOffsetZ ?? 0;
+  const hitboxWidth = asset.width * colliderScale * hitboxWidthScale;
+  const hitboxHeight = asset.height * colliderScale * hitboxHeightScale;
+  const hitboxDepth = asset.width * colliderScale * hitboxDepthScale;
+
+  return {
+    id: asset.placedId,
+    x: asset.x + hitboxOffsetX,
+    y: asset.y + hitboxHeight / 2 + hitboxOffsetY,
+    z: asset.z + hitboxOffsetZ,
+    halfWidth: hitboxWidth / 2,
+    halfHeight: hitboxHeight / 2,
+    halfDepth: hitboxDepth / 2,
+  };
+}
 
 function App() {
   const [sceneText, setSceneText] = useState(
@@ -139,6 +170,14 @@ function App() {
       z: 0 + offset,
       width: 2.4,
       height: 2.4,
+      isSolid: true,
+      colliderScale: 0.75,
+      hitboxWidthScale: asset.category === "furniture" ? 1 : 0.8,
+      hitboxHeightScale: 1,
+      hitboxDepthScale: asset.category === "furniture" ? 1 : 0.6,
+      hitboxOffsetX: 0,
+      hitboxOffsetY: 0,
+      hitboxOffsetZ: 0,
     };
 
     setPlacedAssets((previousPlacedAssets) => [
@@ -165,6 +204,12 @@ function App() {
       )
     );
   }
+
+  const collisionObjects = useMemo(() => {
+    return placedAssets
+      .filter((asset) => asset.isSolid)
+      .map((asset) => createAssetHitbox(asset));
+  }, [placedAssets]);
 
   function removePlacedAsset(placedId) {
     setPlacedAssets((previousPlacedAssets) =>
@@ -248,7 +293,7 @@ function App() {
                   />
                 ))}
 
-                <Player />
+                <Player collisionObjects={collisionObjects} />
               </group>
             </Canvas>
           </div>
@@ -272,10 +317,167 @@ function App() {
                   <p>{asset.name}</p>
 
                   {selectedPlacedAssetId === asset.placedId && (
-                    <>
+                    <div className="hitbox-controls">
                       <p className="control-hint">
                         Drag the asset in the room to move it.
                       </p>
+
+                      <div className="hitbox-toggle-row">
+                        <label className="control-hint cozy-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(asset.isSolid)}
+                            onChange={(event) =>
+                              updatePlacedAsset(asset.placedId, {
+                                isSolid: event.target.checked,
+                              })
+                            }
+                            onClick={(event) => event.stopPropagation()}
+                          />{" "}
+                          Collidable
+                        </label>
+                      </div>
+
+                      <div className="hitbox-group">
+                        <p className="hitbox-group-title">Size</p>
+
+                        <label className="control-hint slider-label">
+                          Hitbox Size
+                          <span>{Math.round((asset.colliderScale ?? 0.75) * 100)}%</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="0.4"
+                          max="1"
+                          step="0.05"
+                          value={asset.colliderScale ?? 0.75}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              colliderScale: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+
+                        <label className="control-hint slider-label">
+                          Width
+                          <span>{Math.round((asset.hitboxWidthScale ?? 0.8) * 100)}%</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="0.3"
+                          max="1.4"
+                          step="0.05"
+                          value={asset.hitboxWidthScale ?? 0.8}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxWidthScale: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+
+                        <label className="control-hint slider-label">
+                          Height
+                          <span>{Math.round((asset.hitboxHeightScale ?? 1) * 100)}%</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="0.3"
+                          max="1.5"
+                          step="0.05"
+                          value={asset.hitboxHeightScale ?? 1}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxHeightScale: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+
+                        <label className="control-hint slider-label">
+                          Depth
+                          <span>{Math.round((asset.hitboxDepthScale ?? 0.6) * 100)}%</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="0.3"
+                          max="1.4"
+                          step="0.05"
+                          value={asset.hitboxDepthScale ?? 0.6}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxDepthScale: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </div>
+
+                      <div className="hitbox-group">
+                        <p className="hitbox-group-title">Position</p>
+
+                        <label className="control-hint slider-label">
+                          Offset X
+                          <span>{(asset.hitboxOffsetX ?? 0).toFixed(2)}</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="-1.5"
+                          max="1.5"
+                          step="0.05"
+                          value={asset.hitboxOffsetX ?? 0}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxOffsetX: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+
+                        <label className="control-hint slider-label">
+                          Offset Y
+                          <span>{(asset.hitboxOffsetY ?? 0).toFixed(2)}</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="-1"
+                          max="1.5"
+                          step="0.05"
+                          value={asset.hitboxOffsetY ?? 0}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxOffsetY: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+
+                        <label className="control-hint slider-label">
+                          Offset Z
+                          <span>{(asset.hitboxOffsetZ ?? 0).toFixed(2)}</span>
+                        </label>
+                        <input
+                          className="cozy-slider"
+                          type="range"
+                          min="-1.5"
+                          max="1.5"
+                          step="0.05"
+                          value={asset.hitboxOffsetZ ?? 0}
+                          onChange={(event) =>
+                            updatePlacedAsset(asset.placedId, {
+                              hitboxOffsetZ: Number(event.target.value),
+                            })
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </div>
 
                       <button
                         className="secondary-button"
@@ -286,7 +488,7 @@ function App() {
                       >
                         Remove
                       </button>
-                    </>
+                    </div>
                   )}
                 </article>
               ))}

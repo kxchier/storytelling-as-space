@@ -3,6 +3,28 @@ import { useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
+const MIN_SOLID_HITBOX_SCALE = 0.6;
+
+function createAssetHitbox(asset) {
+  const colliderScale = asset.colliderScale ?? 0.75;
+  const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
+  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
+  const hitboxWidthScale = asset.isSolid
+    ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
+    : baseWidthScale;
+  const hitboxDepthScale = asset.isSolid
+    ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
+    : baseDepthScale;
+  const width = asset.width * colliderScale * hitboxWidthScale;
+  const height = asset.height * colliderScale * (asset.hitboxHeightScale ?? 1);
+  const depth = asset.width * colliderScale * hitboxDepthScale;
+  const offsetX = asset.hitboxOffsetX ?? 0;
+  const offsetY = asset.hitboxOffsetY ?? 0;
+  const offsetZ = asset.hitboxOffsetZ ?? 0;
+
+  return { width, height, depth, offsetX, offsetY, offsetZ };
+}
+
 function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
   const texture = useTexture(asset.imageUrl);
   const { camera, pointer, raycaster, gl } = useThree();
@@ -17,6 +39,10 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     return new THREE.Vector3();
   }, []);
 
+  const hitbox = useMemo(() => {
+    return createAssetHitbox(asset);
+  }, [asset]);
+
   const resizeHandleTexture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 128;
@@ -24,8 +50,8 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
   
     const ctx = canvas.getContext("2d");
   
-    // purple rounded square
-    ctx.fillStyle = "#7f5af0";
+    // cozy neutral rounded square
+    ctx.fillStyle = "#8c735f";
     ctx.beginPath();
     ctx.roundRect(8, 8, 112, 112, 20);
     ctx.fill();
@@ -155,6 +181,14 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     }
   }
 
+  const hitboxYPosition = -asset.height / 2 + hitbox.height / 2 + hitbox.offsetY;
+  const handlePadding = 0.16;
+  const resizeHandlePosition = [
+    hitbox.offsetX + hitbox.width / 2 + handlePadding,
+    hitboxYPosition + hitbox.height / 2 + handlePadding,
+    hitbox.offsetZ - hitbox.depth / 2 - handlePadding,
+  ];
+
   return (
     <group position={[asset.x, asset.y + asset.height / 2, asset.z]}>
       <sprite
@@ -168,38 +202,22 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
       </sprite>
 
       {isSelected && (
-        <>
-          {/* selection border */}
-          <group position={[0, 0, 0.04]} scale={[asset.width, asset.height, 1]}>
-            {/* top */}
-            <mesh position={[0, 0.53, 0]}>
-              <planeGeometry args={[1.08, 0.045]} />
-              <meshBasicMaterial color="#7f5af0" transparent opacity={0.85} />
-            </mesh>
-
-            {/* bottom */}
-            <mesh position={[0, -0.53, 0]}>
-              <planeGeometry args={[1.08, 0.045]} />
-              <meshBasicMaterial color="#7f5af0" transparent opacity={0.85} />
-            </mesh>
-
-            {/* left */}
-            <mesh position={[-0.53, 0, 0]}>
-              <planeGeometry args={[0.045, 1.08]} />
-              <meshBasicMaterial color="#7f5af0" transparent opacity={0.85} />
-            </mesh>
-
-            {/* right */}
-            <mesh position={[0.53, 0, 0]}>
-              <planeGeometry args={[0.045, 1.08]} />
-              <meshBasicMaterial color="#7f5af0" transparent opacity={0.85} />
-            </mesh>
-          </group>
-
-          {/* resize handle */}
-          {/* resize handle */}
+        <group>
+          <mesh
+            position={[hitbox.offsetX, hitboxYPosition, hitbox.offsetZ]}
+            renderOrder={10}
+          >
+            <boxGeometry args={[hitbox.width, hitbox.height, hitbox.depth]} />
+            <meshBasicMaterial
+              color={asset.isSolid ? "#3f3026" : "#6a5242"}
+              wireframe
+              transparent
+              opacity={1}
+              depthTest
+            />
+          </mesh>
           <sprite
-            position={[asset.width / 2 + 0.18, asset.height / 2 + 0.18, 0.08]}
+            position={resizeHandlePosition}
             scale={[0.42, 0.42, 1]}
             onPointerDown={handleResizePointerDown}
             onPointerMove={handleResizePointerMove}
@@ -214,7 +232,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
               depthWrite={false}
             />
           </sprite>
-        </>
+        </group>
       )}
     </group>
   );
