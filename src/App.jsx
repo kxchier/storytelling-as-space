@@ -18,7 +18,6 @@ function App() {
   const [placedAssets, setPlacedAssets] = useState([]);
   const [selectedPlacedAssetId, setSelectedPlacedAssetId] = useState(null);
 
-  const [loadingRoom, setLoadingRoom] = useState(false);
   const [loadingAsset, setLoadingAsset] = useState(false);
 
   function parseScene() {
@@ -129,9 +128,9 @@ function App() {
 
   function placeAsset(asset) {
     if (!asset.imageUrl) return;
-  
+
     const offset = placedAssets.length * 0.35;
-  
+
     const placedAsset = {
       ...asset,
       placedId: crypto.randomUUID(),
@@ -141,54 +140,29 @@ function App() {
       width: 2.4,
       height: 2.4,
     };
-  
+
     setPlacedAssets((previousPlacedAssets) => [
       ...previousPlacedAssets,
       placedAsset,
     ]);
-  
+
     setSelectedPlacedAssetId(placedAsset.placedId);
   }
 
-  function movePlacedAsset(placedId, direction) {
-    setPlacedAssets((previousPlacedAssets) =>
-      previousPlacedAssets.map((asset) => {
-        if (asset.placedId !== placedId) return asset;
-
-        const step = 0.25;
-
-        if (direction === "left") {
-          return { ...asset, x: asset.x - step };
-        }
-
-        if (direction === "right") {
-          return { ...asset, x: asset.x + step };
-        }
-
-        if (direction === "up") {
-          return { ...asset, z: asset.z - step };
-        }
-
-        if (direction === "down") {
-          return { ...asset, z: asset.z + step };
-        }
-
-        return asset;
-      })
-    );
+  function selectPlacedAsset(placedId) {
+    setSelectedPlacedAssetId(placedId);
   }
 
-  function resizePlacedAsset(placedId, amount) {
+  function updatePlacedAsset(placedId, updates) {
     setPlacedAssets((previousPlacedAssets) =>
-      previousPlacedAssets.map((asset) => {
-        if (asset.placedId !== placedId) return asset;
-
-        return {
-          ...asset,
-          width: Math.max(0.3, asset.width + amount),
-          height: Math.max(0.3, asset.height + amount),
-        };
-      })
+      previousPlacedAssets.map((asset) =>
+        asset.placedId === placedId
+          ? {
+              ...asset,
+              ...updates,
+            }
+          : asset
+      )
     );
   }
 
@@ -196,7 +170,7 @@ function App() {
     setPlacedAssets((previousPlacedAssets) =>
       previousPlacedAssets.filter((asset) => asset.placedId !== placedId)
     );
-  
+
     if (selectedPlacedAssetId === placedId) {
       setSelectedPlacedAssetId(null);
     }
@@ -247,123 +221,77 @@ function App() {
           <h2>Isometric Room</h2>
 
           <div className="room-canvas">
-          <Canvas
-            orthographic
-            camera={{
-              position: [6, 6, 6],
-              zoom: 42,
-              near: 0.1,
-              far: 1000,
-            }}
-          >
-            <ambientLight intensity={1.5} />
-            <directionalLight position={[5, 8, 5]} intensity={1} />
+            <Canvas
+              orthographic
+              camera={{
+                position: [6, 6, 6],
+                zoom: 42,
+                near: 0.1,
+                far: 1000,
+              }}
+            >
+              <ambientLight intensity={1.5} />
+              <directionalLight position={[5, 8, 5]} intensity={1} />
 
-            <group position={[0, -2, 0]}>
-              <IsometricRoom />
+              <group position={[0, -2, 0]}>
+                <IsometricRoom />
 
-              {placedAssets.map((asset) => (
-                <PlacedAsset3D key={asset.placedId} asset={asset} />
-              ))}
+                {placedAssets.map((asset) => (
+                  <PlacedAsset3D
+                    key={asset.placedId}
+                    asset={asset}
+                    isSelected={selectedPlacedAssetId === asset.placedId}
+                    onSelect={() => selectPlacedAsset(asset.placedId)}
+                    onUpdate={(updates) =>
+                      updatePlacedAsset(asset.placedId, updates)
+                    }
+                  />
+                ))}
 
-              <Player />
-            </group>
-          </Canvas>
+                <Player />
+              </group>
+            </Canvas>
           </div>
 
           <h2>Placed Assets</h2>
 
-        {placedAssets.length === 0 ? (
-          <p className="empty">Placed assets will appear here.</p>
-        ) : (
-          <div className="placed-list">
-            {placedAssets.map((asset) => (
-              <article
-                key={asset.placedId}
-                className={
-                  selectedPlacedAssetId === asset.placedId
-                    ? "placed-control-card selected"
-                    : "placed-control-card"
-                }
-                onClick={() => setSelectedPlacedAssetId(asset.placedId)}
-              >
-                <p>{asset.name}</p>
+          {placedAssets.length === 0 ? (
+            <p className="empty">Placed assets will appear here.</p>
+          ) : (
+            <div className="placed-list">
+              {placedAssets.map((asset) => (
+                <article
+                  key={asset.placedId}
+                  className={
+                    selectedPlacedAssetId === asset.placedId
+                      ? "placed-control-card selected"
+                      : "placed-control-card"
+                  }
+                  onClick={() => selectPlacedAsset(asset.placedId)}
+                >
+                  <p>{asset.name}</p>
 
-                {selectedPlacedAssetId === asset.placedId && (
-                  <>
-                    <div className="control-row">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          movePlacedAsset(asset.placedId, "left");
-                        }}
-                      >
-                        ←
-                      </button>
+                  {selectedPlacedAssetId === asset.placedId && (
+                    <>
+                      <p className="control-hint">
+                        Drag the asset in the room to move it.
+                      </p>
 
                       <button
+                        className="secondary-button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          movePlacedAsset(asset.placedId, "up");
+                          removePlacedAsset(asset.placedId);
                         }}
                       >
-                        ↑
+                        Remove
                       </button>
-
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          movePlacedAsset(asset.placedId, "down");
-                        }}
-                      >
-                        ↓
-                      </button>
-
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          movePlacedAsset(asset.placedId, "right");
-                        }}
-                      >
-                        →
-                      </button>
-                    </div>
-
-                    <div className="control-row">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          resizePlacedAsset(asset.placedId, -0.1);
-                        }}
-                      >
-                        Smaller
-                      </button>
-
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          resizePlacedAsset(asset.placedId, 0.1);
-                        }}
-                      >
-                        Bigger
-                      </button>
-                    </div>
-
-                    <button
-                      className="secondary-button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        removePlacedAsset(asset.placedId);
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
+                    </>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="right-panel panel">
@@ -375,6 +303,7 @@ function App() {
               <p className="asset-category">{selectedAsset.category}</p>
 
               <label>Asset Prompt</label>
+
               <textarea
                 value={selectedAsset.prompt}
                 onChange={(event) =>
@@ -418,6 +347,7 @@ function App() {
                 <article key={asset.id} className="library-card">
                   <img src={asset.imageUrl} alt={asset.name} />
                   <p>{asset.name}</p>
+
                   <button onClick={() => setSelectedAsset(asset)}>Edit</button>
                   <button onClick={() => placeAsset(asset)}>Place</button>
                 </article>
