@@ -10,6 +10,7 @@ function createAssetHitbox(asset) {
 
   const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
   const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
+  const baseHeightScale = asset.hitboxHeightScale ?? 1;
 
   const hitboxWidthScale = asset.isSolid
     ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
@@ -24,8 +25,7 @@ function createAssetHitbox(asset) {
   const hitboxBaseDepth = asset.hitboxBaseDepth ?? asset.width;
 
   const width = hitboxBaseWidth * colliderScale * hitboxWidthScale;
-  const height =
-    hitboxBaseHeight * colliderScale * (asset.hitboxHeightScale ?? 1);
+  const height = hitboxBaseHeight * colliderScale * baseHeightScale;
   const depth = hitboxBaseDepth * colliderScale * hitboxDepthScale;
 
   const offsetX = asset.hitboxOffsetX ?? 0;
@@ -100,10 +100,10 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     ctx.lineTo(60, 84);
     ctx.stroke();
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
+    const canvasTexture = new THREE.CanvasTexture(canvas);
+    canvasTexture.needsUpdate = true;
 
-    return texture;
+    return canvasTexture;
   }, []);
 
   function getPointerFloorPoint() {
@@ -114,6 +114,12 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
       x: intersectionPoint.x,
       z: intersectionPoint.z,
     };
+  }
+
+  function safelySetPointerCapture(event) {
+    if (!event.target.hasPointerCapture?.(event.pointerId)) {
+      event.target.setPointerCapture(event.pointerId);
+    }
   }
 
   function safelyReleasePointerCapture(event) {
@@ -134,7 +140,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     setDragMode("move");
     gl.domElement.style.cursor = "grabbing";
 
-    event.target.setPointerCapture(event.pointerId);
+    safelySetPointerCapture(event);
   }
 
   function handleHitboxPointerMove(event) {
@@ -186,7 +192,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
 
     gl.domElement.style.cursor = "nesw-resize";
 
-    event.target.setPointerCapture(event.pointerId);
+    safelySetPointerCapture(event);
   }
 
   function handleResizePointerMove(event) {
@@ -205,6 +211,9 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     onUpdate({
       width: newSize,
       height: newSize,
+      hitboxBaseWidth: newSize,
+      hitboxBaseHeight: newSize,
+      hitboxBaseDepth: newSize,
     });
   }
 
@@ -235,13 +244,28 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     }
   }
 
-  const hitboxYPosition = hitbox.height / 2 + hitbox.offsetY;
+  /**
+   * IMPORTANT:
+   * The image sprite is positioned at asset.height / 2.
+   * So the hitbox should also be centered around asset.height / 2,
+   * not hitbox.height / 2.
+   *
+   * This keeps the image from drifting into the top-left/top-corner
+   * of the hitbox as you resize.
+   */
+  const sharedVisualCenterY = asset.height / 2;
+
+  const hitboxPosition = [
+    hitbox.offsetX,
+    sharedVisualCenterY + hitbox.offsetY,
+    hitbox.offsetZ,
+  ];
 
   const handlePadding = 0.16;
 
   const resizeHandlePosition = [
     hitbox.offsetX + hitbox.width / 2 + handlePadding,
-    hitboxYPosition + hitbox.height / 2 + handlePadding,
+    sharedVisualCenterY + hitbox.offsetY + hitbox.height / 2 + handlePadding,
     hitbox.offsetZ - hitbox.depth / 2 - handlePadding,
   ];
 
@@ -249,7 +273,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     <group position={[asset.x, asset.y, asset.z]}>
       {/* Image only. This no longer controls dragging. */}
       <sprite
-        position={[0, asset.height / 2, 0]}
+        position={[0, sharedVisualCenterY, 0]}
         scale={[asset.width, asset.height, 1]}
       >
         <spriteMaterial map={texture} transparent depthWrite={false} />
@@ -257,7 +281,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
 
       {/* Hitbox controls selection and movement. */}
       <mesh
-        position={[hitbox.offsetX, hitboxYPosition, hitbox.offsetZ]}
+        position={hitboxPosition}
         renderOrder={10}
         onPointerDown={handleHitboxPointerDown}
         onPointerMove={handleHitboxPointerMove}

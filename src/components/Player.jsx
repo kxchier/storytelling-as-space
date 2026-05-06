@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
 
 const STEP = 0.25;
+
+// visible size of the avatar
 const PLAYER_RADIUS = 0.18;
+
+// collision size of the avatar
+// smaller than visual radius so the player does not stop too far away
+const PLAYER_COLLISION_RADIUS = 0.08;
+
 const ROOM_LIMIT = 3.82;
 
 function collidesWithAnyObject(nextX, nextZ, collisionObjects) {
   return collisionObjects.some((object) => {
+    const halfWidth = object.halfWidth ?? object.width / 2;
+    const halfDepth = object.halfDepth ?? object.depth / 2;
+
     return (
-      Math.abs(nextX - object.x) <= PLAYER_RADIUS + object.halfWidth &&
-      Math.abs(nextZ - object.z) <= PLAYER_RADIUS + object.halfDepth
+      Math.abs(nextX - object.x) <= PLAYER_COLLISION_RADIUS + halfWidth &&
+      Math.abs(nextZ - object.z) <= PLAYER_COLLISION_RADIUS + halfDepth
     );
   });
 }
@@ -31,31 +41,21 @@ function Player({ collisionObjects = [] }) {
         let nextX = x;
         let nextZ = z;
 
-        if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
+        const key = event.key.toLowerCase();
+
+        if (key === "arrowup" || key === "w") {
           nextZ -= STEP;
         }
 
-        if (
-          event.key === "ArrowDown" ||
-          event.key === "s" ||
-          event.key === "S"
-        ) {
+        if (key === "arrowdown" || key === "s") {
           nextZ += STEP;
         }
 
-        if (
-          event.key === "ArrowLeft" ||
-          event.key === "a" ||
-          event.key === "A"
-        ) {
+        if (key === "arrowleft" || key === "a") {
           nextX -= STEP;
         }
 
-        if (
-          event.key === "ArrowRight" ||
-          event.key === "d" ||
-          event.key === "D"
-        ) {
+        if (key === "arrowright" || key === "d") {
           nextX += STEP;
         }
 

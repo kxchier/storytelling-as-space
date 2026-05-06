@@ -10,9 +10,11 @@ import "./App.css";
 const MIN_SOLID_HITBOX_SCALE = 0.6;
 
 function createAssetHitbox(asset) {
-  const colliderScale = asset.colliderScale ?? 0.9;
+  const colliderScale = asset.colliderScale ?? 0.75;
+
   const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
-  const baseDepthScale = asset.hitboxDepthScale ?? 0.7;
+  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
+  const baseHeightScale = asset.hitboxHeightScale ?? 1;
 
   const hitboxWidthScale = asset.isSolid
     ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
@@ -22,9 +24,13 @@ function createAssetHitbox(asset) {
     ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
     : baseDepthScale;
 
-  const width = asset.width * colliderScale * hitboxWidthScale;
-  const height = asset.height * colliderScale * (asset.hitboxHeightScale ?? 1);
-  const depth = asset.width * colliderScale * hitboxDepthScale;
+  const hitboxBaseWidth = asset.hitboxBaseWidth ?? asset.width;
+  const hitboxBaseHeight = asset.hitboxBaseHeight ?? asset.height;
+  const hitboxBaseDepth = asset.hitboxBaseDepth ?? asset.width;
+
+  const width = hitboxBaseWidth * colliderScale * hitboxWidthScale;
+  const height = hitboxBaseHeight * colliderScale * baseHeightScale;
+  const depth = hitboxBaseDepth * colliderScale * hitboxDepthScale;
 
   const offsetX = asset.hitboxOffsetX ?? 0;
   const offsetY = asset.hitboxOffsetY ?? 0;
@@ -32,7 +38,7 @@ function createAssetHitbox(asset) {
 
   return {
     x: asset.x + offsetX,
-    y: asset.y + offsetY,
+    y: asset.y + asset.height / 2 + offsetY,
     z: asset.z + offsetZ,
 
     width,
@@ -180,13 +186,13 @@ function App() {
       width: 2,
       height: 2,
       isSolid: true,
-      colliderScale: 0.75,
-      hitboxWidthScale: 0.5,
-      hitboxHeightScale: 0.5,
-      hitboxDepthScale: 0.5,
-      hitboxOffsetX: -0.35,
+      colliderScale: 0.9,
+      hitboxWidthScale: 0.8,
+      hitboxHeightScale: 0.8,
+      hitboxDepthScale: 0.7,
+      hitboxOffsetX: 0,
       hitboxOffsetY: 0,
-      hitboxOffsetZ: -0.35,
+      hitboxOffsetZ: 0,
     };
 
     setPlacedAssets((previousPlacedAssets) => [
