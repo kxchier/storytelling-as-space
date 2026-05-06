@@ -133,13 +133,18 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
       event.stopPropagation();
       return;
     }
-
+  
     event.stopPropagation();
     onSelect();
-
+  
+    if (asset.isLocked) {
+      gl.domElement.style.cursor = "not-allowed";
+      return;
+    }
+  
     setDragMode("move");
     gl.domElement.style.cursor = "grabbing";
-
+  
     safelySetPointerCapture(event);
   }
 
@@ -169,7 +174,12 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
 
   function handleHitboxPointerOver(event) {
     event.stopPropagation();
-
+  
+    if (asset.isLocked) {
+      gl.domElement.style.cursor = "not-allowed";
+      return;
+    }
+  
     if (!isResizing && !isHoveringResizeHandle) {
       gl.domElement.style.cursor = "grab";
     }
@@ -186,12 +196,17 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
   function handleResizePointerDown(event) {
     event.stopPropagation();
     onSelect();
-
+  
+    if (asset.isLocked) {
+      gl.domElement.style.cursor = "not-allowed";
+      return;
+    }
+  
     setDragMode("resize");
     setIsHoveringResizeHandle(true);
-
+  
     gl.domElement.style.cursor = "nesw-resize";
-
+  
     safelySetPointerCapture(event);
   }
 
@@ -291,7 +306,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
       >
         <boxGeometry args={[hitbox.width, hitbox.height, hitbox.depth]} />
         <meshBasicMaterial
-          color={asset.isSolid ? "#3f3026" : "#6a5242"}
+          color={asset.isLocked ? "#9f8b78" : asset.isSolid ? "#3f3026" : "#6a5242"}
           wireframe
           transparent
           opacity={isSelected ? 1 : 0}
@@ -299,25 +314,25 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
         />
       </mesh>
 
-      {isSelected && (
-        <sprite
-          renderOrder={20}
-          position={resizeHandlePosition}
-          scale={[0.65, 0.65, 1]}
-          onPointerDown={handleResizePointerDown}
-          onPointerMove={handleResizePointerMove}
-          onPointerUp={handleResizePointerUp}
-          onPointerOver={handleResizePointerOver}
-          onPointerOut={handleResizePointerOut}
-        >
-          <spriteMaterial
-            map={resizeHandleTexture}
-            transparent
-            depthTest={false}
-            depthWrite={false}
-          />
-        </sprite>
-      )}
+      {isSelected && !asset.isLocked && (
+      <sprite
+        renderOrder={20}
+        position={resizeHandlePosition}
+        scale={[0.65, 0.65, 1]}
+        onPointerDown={handleResizePointerDown}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        onPointerOver={handleResizePointerOver}
+        onPointerOut={handleResizePointerOut}
+      >
+        <spriteMaterial
+          map={resizeHandleTexture}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+        />
+      </sprite>
+    )}
     </group>
   );
 }

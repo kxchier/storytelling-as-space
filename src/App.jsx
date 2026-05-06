@@ -65,11 +65,15 @@ function App() {
   const [loadingAsset, setLoadingAsset] = useState(false);
   const [loadingParse, setLoadingParse] = useState(false);
 
+  const selectedPlacedAsset = placedAssets.find(
+    (asset) => asset.placedId === selectedPlacedAssetId
+  );
+
   async function parseScene() {
     if (!sceneText.trim()) return;
-  
+
     setLoadingParse(true);
-  
+
     try {
       const response = await fetch("http://localhost:3001/parse-scene", {
         method: "POST",
@@ -78,9 +82,9 @@ function App() {
         },
         body: JSON.stringify({ sceneText }),
       });
-  
+
       const data = await response.json();
-  
+
       const parsedAssets = data.assets.map((asset) => ({
         id: crypto.randomUUID(),
         name: asset.name,
@@ -88,7 +92,7 @@ function App() {
         placementType: asset.placementType ?? "sprite",
         prompt: asset.prompt,
       }));
-  
+
       setAssetCandidates(parsedAssets);
       setSelectedAsset(parsedAssets[0] ?? null);
     } catch (error) {
@@ -100,20 +104,20 @@ function App() {
 
   function updateSelectedAssetPrompt(newPrompt) {
     if (!selectedAsset) return;
-  
+
     const updatedAsset = {
       ...selectedAsset,
       prompt: newPrompt,
     };
-  
+
     setSelectedAsset(updatedAsset);
-  
+
     setAssetCandidates((previousCandidates) =>
       previousCandidates.map((asset) =>
         asset.id === updatedAsset.id ? updatedAsset : asset
       )
     );
-  
+
     setAssetLibrary((previousLibrary) =>
       previousLibrary.map((asset) =>
         asset.id === updatedAsset.id ? updatedAsset : asset
@@ -185,7 +189,10 @@ function App() {
       z: 0 + offset,
       width: 2,
       height: 2,
+
       isSolid: true,
+      isLocked: false,
+
       colliderScale: 0.9,
       hitboxWidthScale: 0.8,
       hitboxHeightScale: 0.8,
@@ -207,7 +214,39 @@ function App() {
     setSelectedPlacedAssetId(placedId);
   }
 
+  function toggleAssetLock(placedId) {
+    setPlacedAssets((previousPlacedAssets) =>
+      previousPlacedAssets.map((asset) =>
+        asset.placedId === placedId
+          ? {
+              ...asset,
+              isLocked: !asset.isLocked,
+            }
+          : asset
+      )
+    );
+  }
+
   function updatePlacedAsset(placedId, updates) {
+    setPlacedAssets((previousPlacedAssets) =>
+      previousPlacedAssets.map((asset) => {
+        if (asset.placedId !== placedId) {
+          return asset;
+        }
+
+        if (asset.isLocked) {
+          return asset;
+        }
+
+        return {
+          ...asset,
+          ...updates,
+        };
+      })
+    );
+  }
+
+  function updatePlacedAssetEvenIfLocked(placedId, updates) {
     setPlacedAssets((previousPlacedAssets) =>
       previousPlacedAssets.map((asset) =>
         asset.placedId === placedId
@@ -220,12 +259,6 @@ function App() {
     );
   }
 
-  const collisionObjects = useMemo(() => {
-    return placedAssets
-      .filter((asset) => asset.isSolid)
-      .map((asset) => createAssetHitbox(asset));
-  }, [placedAssets]);
-
   function removePlacedAsset(placedId) {
     setPlacedAssets((previousPlacedAssets) =>
       previousPlacedAssets.filter((asset) => asset.placedId !== placedId)
@@ -235,6 +268,12 @@ function App() {
       setSelectedPlacedAssetId(null);
     }
   }
+
+  const collisionObjects = useMemo(() => {
+    return placedAssets
+      .filter((asset) => asset.isSolid)
+      .map((asset) => createAssetHitbox(asset));
+  }, [placedAssets]);
 
   return (
     <main className="app">
@@ -307,6 +346,7 @@ function App() {
                     key={asset.placedId}
                     asset={asset}
                     isSelected={selectedPlacedAssetId === asset.placedId}
+                    isLocked={asset.isLocked}
                     onSelect={() => selectPlacedAsset(asset.placedId)}
                     onUpdate={(updates) =>
                       updatePlacedAsset(asset.placedId, updates)
@@ -330,24 +370,45 @@ function App() {
                   key={asset.placedId}
                   className={
                     selectedPlacedAssetId === asset.placedId
-                      ? "placed-control-card selected"
-                      : "placed-control-card"
+                      ? `placed-control-card selected ${
+                          asset.isLocked ? "locked" : ""
+                        }`
+                      : `placed-control-card ${asset.isLocked ? "locked" : ""}`
                   }
                   onClick={() => selectPlacedAsset(asset.placedId)}
                 >
-                  <p>{asset.name}</p>
+                  <div className="placed-card-header">
+                    <p>{asset.name}</p>
+
+                    {asset.isLocked && (
+                      <span className="lock-badge">Locked</span>
+                    )}
+                  </div>
 
                   {selectedPlacedAssetId === asset.placedId && (
                     <div className="hitbox-controls">
                       <p className="control-hint">
-                        Drag the asset in the room to move it.
+                        {asset.isLocked
+                          ? "This asset is locked. Unlock it to move or edit it."
+                          : "Drag the asset in the room to move it."}
                       </p>
+
+                      <button
+                        className="secondary-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleAssetLock(asset.placedId);
+                        }}
+                      >
+                        {asset.isLocked ? "🔓 Unlock Object" : "🔒 Lock Object"}
+                      </button>
 
                       <div className="hitbox-toggle-row">
                         <label className="control-hint cozy-checkbox-label">
                           <input
                             type="checkbox"
                             checked={Boolean(asset.isSolid)}
+                            disabled={asset.isLocked}
                             onChange={(event) =>
                               updatePlacedAsset(asset.placedId, {
                                 isSolid: event.target.checked,
@@ -364,7 +425,9 @@ function App() {
 
                         <label className="control-hint slider-label">
                           Hitbox Size
-                          <span>{Math.round((asset.colliderScale ?? 0.75) * 100)}%</span>
+                          <span>
+                            {Math.round((asset.colliderScale ?? 0.75) * 100)}%
+                          </span>
                         </label>
                         <input
                           className="cozy-slider"
@@ -373,6 +436,7 @@ function App() {
                           max="1"
                           step="0.05"
                           value={asset.colliderScale ?? 0.75}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               colliderScale: Number(event.target.value),
@@ -383,7 +447,12 @@ function App() {
 
                         <label className="control-hint slider-label">
                           Width
-                          <span>{Math.round((asset.hitboxWidthScale ?? 0.8) * 100)}%</span>
+                          <span>
+                            {Math.round(
+                              (asset.hitboxWidthScale ?? 0.8) * 100
+                            )}
+                            %
+                          </span>
                         </label>
                         <input
                           className="cozy-slider"
@@ -392,6 +461,7 @@ function App() {
                           max="1.4"
                           step="0.05"
                           value={asset.hitboxWidthScale ?? 0.8}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxWidthScale: Number(event.target.value),
@@ -402,7 +472,12 @@ function App() {
 
                         <label className="control-hint slider-label">
                           Height
-                          <span>{Math.round((asset.hitboxHeightScale ?? 1) * 100)}%</span>
+                          <span>
+                            {Math.round(
+                              (asset.hitboxHeightScale ?? 1) * 100
+                            )}
+                            %
+                          </span>
                         </label>
                         <input
                           className="cozy-slider"
@@ -411,6 +486,7 @@ function App() {
                           max="1.5"
                           step="0.05"
                           value={asset.hitboxHeightScale ?? 1}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxHeightScale: Number(event.target.value),
@@ -421,7 +497,12 @@ function App() {
 
                         <label className="control-hint slider-label">
                           Depth
-                          <span>{Math.round((asset.hitboxDepthScale ?? 0.6) * 100)}%</span>
+                          <span>
+                            {Math.round(
+                              (asset.hitboxDepthScale ?? 0.6) * 100
+                            )}
+                            %
+                          </span>
                         </label>
                         <input
                           className="cozy-slider"
@@ -430,6 +511,7 @@ function App() {
                           max="1.4"
                           step="0.05"
                           value={asset.hitboxDepthScale ?? 0.6}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxDepthScale: Number(event.target.value),
@@ -453,6 +535,7 @@ function App() {
                           max="1.5"
                           step="0.05"
                           value={asset.hitboxOffsetX ?? 0}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxOffsetX: Number(event.target.value),
@@ -472,6 +555,7 @@ function App() {
                           max="1.5"
                           step="0.05"
                           value={asset.hitboxOffsetY ?? 0}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxOffsetY: Number(event.target.value),
@@ -491,6 +575,7 @@ function App() {
                           max="1.5"
                           step="0.05"
                           value={asset.hitboxOffsetZ ?? 0}
+                          disabled={asset.isLocked}
                           onChange={(event) =>
                             updatePlacedAsset(asset.placedId, {
                               hitboxOffsetZ: Number(event.target.value),
@@ -535,7 +620,11 @@ function App() {
                 rows={6}
               />
 
-              <button className="button-bottom-margin" onClick={generateSelectedAsset} disabled={loadingAsset}>
+              <button
+                className="button-bottom-margin"
+                onClick={generateSelectedAsset}
+                disabled={loadingAsset}
+              >
                 {loadingAsset ? "Generating..." : "Generate / Regenerate"}
               </button>
 
