@@ -1,3 +1,5 @@
+import { PLAYER_PROXIMITY_RADIUS } from "../constants/player";
+
 const DEFAULT_INTERACTIONS_BY_CATEGORY = {
   furniture: [
     {
@@ -85,8 +87,6 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
 
 const FALLBACK_INTERACTIONS = DEFAULT_INTERACTIONS_BY_CATEGORY.object;
 
-const PROXIMITY_PLAYER_RADIUS = 0.28;
-
 export function getDefaultInteractionsForCategory(category) {
   return (
     DEFAULT_INTERACTIONS_BY_CATEGORY[category] ?? FALLBACK_INTERACTIONS
@@ -130,8 +130,10 @@ export function isPlayerInHitboxProximity(playerPosition, hitbox) {
   const [playerX, , playerZ] = playerPosition;
 
   return (
-    Math.abs(playerX - hitbox.x) <= PROXIMITY_PLAYER_RADIUS + hitbox.halfWidth &&
-    Math.abs(playerZ - hitbox.z) <= PROXIMITY_PLAYER_RADIUS + hitbox.halfDepth
+    Math.abs(playerX - hitbox.x) <=
+      PLAYER_PROXIMITY_RADIUS + hitbox.halfWidth &&
+    Math.abs(playerZ - hitbox.z) <=
+      PLAYER_PROXIMITY_RADIUS + hitbox.halfDepth
   );
 }
 

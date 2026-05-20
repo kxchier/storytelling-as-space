@@ -1,15 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+
+import {
+  PLAYER_FLOOR_Y,
+  PLAYER_HALF_DEPTH,
+  PLAYER_HALF_WIDTH,
+  PLAYER_SCALE,
+} from "../constants/player";
 
 const STEP = 0.25;
 
-// visible size of the avatar
-const PLAYER_RADIUS = 0.18;
-
-// collision size of the avatar
-// smaller than visual radius so the player does not stop too far away
-const PLAYER_COLLISION_RADIUS = 0.08;
-
 const ROOM_LIMIT = 3.82;
+
+const SCALE = PLAYER_SCALE;
+
+const SWING_AMOUNT = 0.42;
+const WALK_FADE_MS = 380;
+
+const COLORS = {
+  skin: "#e8c4a8",
+  shirt: "#5a7a9a",
+  pants: "#4a3f38",
+  shoes: "#2d2520",
+};
+
+function s(value) {
+  return value * SCALE;
+}
 
 function collidesWithAnyObject(nextX, nextZ, collisionObjects) {
   return collisionObjects.some((object) => {
@@ -17,8 +34,8 @@ function collidesWithAnyObject(nextX, nextZ, collisionObjects) {
     const halfDepth = object.halfDepth ?? object.depth / 2;
 
     return (
-      Math.abs(nextX - object.x) <= PLAYER_COLLISION_RADIUS + halfWidth &&
-      Math.abs(nextZ - object.z) <= PLAYER_COLLISION_RADIUS + halfDepth
+      Math.abs(nextX - object.x) <= PLAYER_HALF_WIDTH + halfWidth &&
+      Math.abs(nextZ - object.z) <= PLAYER_HALF_DEPTH + halfDepth
     );
   });
 }
@@ -32,8 +49,119 @@ function isInsideRoom(nextX, nextZ) {
   );
 }
 
+function Limb({ pivot, size, color, meshOffset, limbRef }) {
+  return (
+    <group ref={limbRef} position={pivot}>
+      <mesh position={meshOffset}>
+        <boxGeometry args={size} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </group>
+  );
+}
+
+function SimpleCharacter({ lastMoveRef }) {
+  const walkPhaseRef = useRef(0);
+  const leftLegRef = useRef();
+  const rightLegRef = useRef();
+  const leftArmRef = useRef();
+  const rightArmRef = useRef();
+
+  const hipY = s(0.11);
+  const legHalfHeight = s(0.055);
+  const shoeHalfHeight = s(0.02);
+  // Shoe sole at local y = 0: hipY + shoeY - shoeHalfHeight = 0
+  const shoeYFromHip = -hipY + shoeHalfHeight;
+  const shoulderY = s(0.27);
+  const armHalfHeight = s(0.07);
+
+  useFrame((_, delta) => {
+    const elapsed = performance.now() - lastMoveRef.current;
+    const walkBlend = Math.max(0, 1 - elapsed / WALK_FADE_MS);
+
+    if (walkBlend > 0) {
+      walkPhaseRef.current += delta * 11;
+    }
+
+    const swing = Math.sin(walkPhaseRef.current) * SWING_AMOUNT * walkBlend;
+
+    if (leftLegRef.current) {
+      leftLegRef.current.rotation.x = swing;
+    }
+
+    if (rightLegRef.current) {
+      rightLegRef.current.rotation.x = -swing;
+    }
+
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = -swing * 0.85;
+    }
+
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = swing * 0.85;
+    }
+  });
+
+  return (
+    <group>
+      <group ref={leftLegRef} position={[-s(0.045), hipY, 0]}>
+        <mesh position={[0, -legHalfHeight, 0]}>
+          <boxGeometry args={[s(0.05), s(0.11), s(0.06)]} />
+          <meshStandardMaterial color={COLORS.pants} />
+        </mesh>
+        <mesh position={[0, shoeYFromHip, s(0.02)]}>
+          <boxGeometry args={[s(0.055), s(0.04), s(0.07)]} />
+          <meshStandardMaterial color={COLORS.shoes} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[s(0.045), hipY, 0]}>
+        <mesh position={[0, -legHalfHeight, 0]}>
+          <boxGeometry args={[s(0.05), s(0.11), s(0.06)]} />
+          <meshStandardMaterial color={COLORS.pants} />
+        </mesh>
+        <mesh position={[0, shoeYFromHip, s(0.02)]}>
+          <boxGeometry args={[s(0.055), s(0.04), s(0.07)]} />
+          <meshStandardMaterial color={COLORS.shoes} />
+        </mesh>
+      </group>
+
+      <mesh position={[0, s(0.2), 0]}>
+        <boxGeometry args={[s(0.14), s(0.18), s(0.09)]} />
+        <meshStandardMaterial color={COLORS.shirt} />
+      </mesh>
+
+      <Limb
+        limbRef={leftArmRef}
+        pivot={[-s(0.1), shoulderY, 0]}
+        meshOffset={[0, -armHalfHeight, 0]}
+        size={[s(0.05), s(0.14), s(0.05)]}
+        color={COLORS.shirt}
+      />
+      <Limb
+        limbRef={rightArmRef}
+        pivot={[s(0.1), shoulderY, 0]}
+        meshOffset={[0, -armHalfHeight, 0]}
+        size={[s(0.05), s(0.14), s(0.05)]}
+        color={COLORS.shirt}
+      />
+
+      <mesh position={[0, s(0.34), 0]}>
+        <boxGeometry args={[s(0.11), s(0.11), s(0.11)]} />
+        <meshStandardMaterial color={COLORS.skin} />
+      </mesh>
+    </group>
+  );
+}
+
 function Player({ collisionObjects = [], onPositionChange }) {
-  const [position, setPosition] = useState([0, 0.15, 0]);
+  const lastMoveRef = useRef(0);
+
+  const [playerState, setPlayerState] = useState({
+    position: [0, 0, 0],
+    facing: 0,
+  });
+
+  const { position, facing } = playerState;
 
   useEffect(() => {
     onPositionChange?.(position);
@@ -41,7 +169,8 @@ function Player({ collisionObjects = [], onPositionChange }) {
 
   useEffect(() => {
     function handleKeyDown(event) {
-      setPosition(([x, y, z]) => {
+      setPlayerState((previousState) => {
+        const [x, y, z] = previousState.position;
         let nextX = x;
         let nextZ = z;
 
@@ -64,18 +193,23 @@ function Player({ collisionObjects = [], onPositionChange }) {
         }
 
         if (nextX === x && nextZ === z) {
-          return [x, y, z];
+          return previousState;
         }
 
         if (!isInsideRoom(nextX, nextZ)) {
-          return [x, y, z];
+          return previousState;
         }
 
         if (collidesWithAnyObject(nextX, nextZ, collisionObjects)) {
-          return [x, y, z];
+          return previousState;
         }
 
-        return [nextX, y, nextZ];
+        lastMoveRef.current = performance.now();
+
+        return {
+          position: [nextX, y, nextZ],
+          facing: Math.atan2(nextX - x, nextZ - z),
+        };
       });
     }
 
@@ -86,11 +220,12 @@ function Player({ collisionObjects = [], onPositionChange }) {
     };
   }, [collisionObjects]);
 
+  const [x, , z] = position;
+
   return (
-    <mesh position={position}>
-      <sphereGeometry args={[PLAYER_RADIUS, 24, 24]} />
-      <meshStandardMaterial />
-    </mesh>
+    <group position={[x, PLAYER_FLOOR_Y, z]} rotation={[0, facing, 0]}>
+      <SimpleCharacter lastMoveRef={lastMoveRef} />
+    </group>
   );
 }
 

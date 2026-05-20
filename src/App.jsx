@@ -33,7 +33,7 @@ function App() {
   const [loadingAsset, setLoadingAsset] = useState(false);
   const [loadingParse, setLoadingParse] = useState(false);
   const [parseError, setParseError] = useState("");
-  const [playerPosition, setPlayerPosition] = useState([0, 0.15, 0]);
+  const [playerPosition, setPlayerPosition] = useState([0, 0, 0]);
   const [actionHistory, setActionHistory] = useState([]);
 
   const selectedPlacedAsset = placedAssets.find(
