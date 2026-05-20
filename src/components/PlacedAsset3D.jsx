@@ -3,44 +3,7 @@ import { useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
-const MIN_SOLID_HITBOX_SCALE = 0.6;
-
-function createAssetHitbox(asset) {
-  const colliderScale = asset.colliderScale ?? 0.75;
-
-  const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
-  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
-  const baseHeightScale = asset.hitboxHeightScale ?? 1;
-
-  const hitboxWidthScale = asset.isSolid
-    ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
-    : baseWidthScale;
-
-  const hitboxDepthScale = asset.isSolid
-    ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
-    : baseDepthScale;
-
-  const hitboxBaseWidth = asset.hitboxBaseWidth ?? asset.width;
-  const hitboxBaseHeight = asset.hitboxBaseHeight ?? asset.height;
-  const hitboxBaseDepth = asset.hitboxBaseDepth ?? asset.width;
-
-  const width = hitboxBaseWidth * colliderScale * hitboxWidthScale;
-  const height = hitboxBaseHeight * colliderScale * baseHeightScale;
-  const depth = hitboxBaseDepth * colliderScale * hitboxDepthScale;
-
-  const offsetX = asset.hitboxOffsetX ?? 0;
-  const offsetY = asset.hitboxOffsetY ?? 0;
-  const offsetZ = asset.hitboxOffsetZ ?? 0;
-
-  return {
-    width,
-    height,
-    depth,
-    offsetX,
-    offsetY,
-    offsetZ,
-  };
-}
+import { createLocalAssetHitbox } from "../utils/hitbox";
 
 function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
   const texture = useTexture(asset.imageUrl);
@@ -61,7 +24,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
   }, []);
 
   const hitbox = useMemo(() => {
-    return createAssetHitbox(asset);
+    return createLocalAssetHitbox(asset);
   }, [asset]);
 
   const resizeHandleTexture = useMemo(() => {
@@ -259,20 +222,12 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     }
   }
 
-  /**
-   * IMPORTANT:
-   * The image sprite is positioned at asset.height / 2.
-   * So the hitbox should also be centered around asset.height / 2,
-   * not hitbox.height / 2.
-   *
-   * This keeps the image from drifting into the top-left/top-corner
-   * of the hitbox as you resize.
-   */
-  const sharedVisualCenterY = asset.height / 2;
+  // Sprite grows upward from the floor; hitbox is anchored by its bottom at y = 0.
+  const spriteCenterY = asset.height / 2;
 
   const hitboxPosition = [
     hitbox.offsetX,
-    sharedVisualCenterY + hitbox.offsetY,
+    hitbox.height / 2 + hitbox.offsetY,
     hitbox.offsetZ,
   ];
 
@@ -280,7 +235,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
 
   const resizeHandlePosition = [
     hitbox.offsetX + hitbox.width / 2 + handlePadding,
-    sharedVisualCenterY + hitbox.offsetY + hitbox.height / 2 + handlePadding,
+    hitbox.height + hitbox.offsetY + handlePadding,
     hitbox.offsetZ - hitbox.depth / 2 - handlePadding,
   ];
 
@@ -288,7 +243,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
     <group position={[asset.x, asset.y, asset.z]}>
       {/* Image only. This no longer controls dragging. */}
       <sprite
-        position={[0, sharedVisualCenterY, 0]}
+        position={[0, spriteCenterY, 0]}
         scale={[asset.width, asset.height, 1]}
       >
         <spriteMaterial map={texture} transparent depthWrite={false} />

@@ -3,6 +3,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import Replicate from "replicate";
 import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+import { parseSceneInNode } from "./parseSceneNode.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -37,6 +43,54 @@ function buildAssetPrompt(asset) {
   ].join(" ");
 }
 
+function attachPrompts(assets) {
+  return assets.map((asset) => ({
+    ...asset,
+    prompt: asset.prompt ?? buildAssetPrompt(asset),
+  }));
+}
+
+function parseSceneWithPython(sceneText) {
+  return new Promise((resolve, reject) => {
+    const pythonScriptPath = path.join(__dirname, "parseScene.py");
+    const python = spawn("python3", [pythonScriptPath]);
+
+    let output = "";
+    let errorOutput = "";
+
+    python.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    python.stderr.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+    python.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(errorOutput || "Python parser failed"));
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(output);
+
+        if (!Array.isArray(parsed.assets)) {
+          reject(new Error("Python parser returned invalid assets"));
+          return;
+        }
+
+        resolve(parsed.assets);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    python.stdin.write(sceneText);
+    python.stdin.end();
+  });
+}
+
 app.post("/parse-scene", async (req, res) => {
   const { sceneText } = req.body;
 
@@ -44,42 +98,31 @@ app.post("/parse-scene", async (req, res) => {
     return res.status(400).json({ error: "Missing sceneText" });
   }
 
-  const python = spawn("python3", ["server/parseScene.py"]);
-
-  let output = "";
-  let errorOutput = "";
-
-  python.stdout.on("data", (data) => {
-    output += data.toString();
-  });
-
-  python.stderr.on("data", (data) => {
-    errorOutput += data.toString();
-  });
-
-  python.on("close", (code) => {
-    if (code !== 0) {
-      console.error("Python parser error:", errorOutput);
-      return res.status(500).json({ error: "Failed to parse scene" });
-    }
+  try {
+    let assets;
 
     try {
-      const parsed = JSON.parse(output);
-    
-      const assetsWithPrompts = parsed.assets.map((asset) => ({
-        ...asset,
-        prompt: buildAssetPrompt(asset),
-      }));
-    
-      res.json({ assets: assetsWithPrompts });
-    } catch (error) {
-      console.error("Could not parse Python output:", error);
-      res.status(500).json({ error: "Invalid parser output" });
+      assets = await parseSceneWithPython(sceneText);
+    } catch (pythonError) {
+      console.warn(
+        "Python parser unavailable, using Node fallback:",
+        pythonError.message
+      );
+      assets = parseSceneInNode(sceneText).assets;
     }
-  });
 
-  python.stdin.write(sceneText);
-  python.stdin.end();
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return res.status(422).json({
+        error: "No objects found in scene text. Try naming specific items.",
+        assets: [],
+      });
+    }
+
+    res.json({ assets: attachPrompts(assets) });
+  } catch (error) {
+    console.error("Error parsing scene:", error);
+    res.status(500).json({ error: "Failed to parse scene", assets: [] });
+  }
 });
 
 app.post("/generate-texture", async (req, res) => {

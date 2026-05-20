@@ -4,52 +4,20 @@ import { Canvas } from "@react-three/fiber";
 import IsometricRoom from "./components/IsometricRoom";
 import PlacedAsset3D from "./components/PlacedAsset3D";
 import Player from "./components/Player";
+import InteractionOverlay from "./components/InteractionOverlay";
+import ActionHistoryPanel from "./components/ActionHistoryPanel";
+import PlacedAssetsPanel from "./components/PlacedAssetsPanel";
+
+import { createAssetHitbox } from "./utils/hitbox";
+import {
+  createActionHistoryEntry,
+  fillNarrativeBlanks,
+  findNearestInteractableAsset,
+  getDefaultInteractionsForCategory,
+  getPlayableInteractions,
+} from "./utils/interactions";
 
 import "./App.css";
-
-const MIN_SOLID_HITBOX_SCALE = 0.6;
-
-function createAssetHitbox(asset) {
-  const colliderScale = asset.colliderScale ?? 0.75;
-
-  const baseWidthScale = asset.hitboxWidthScale ?? 0.8;
-  const baseDepthScale = asset.hitboxDepthScale ?? 0.6;
-  const baseHeightScale = asset.hitboxHeightScale ?? 1;
-
-  const hitboxWidthScale = asset.isSolid
-    ? Math.max(baseWidthScale, MIN_SOLID_HITBOX_SCALE)
-    : baseWidthScale;
-
-  const hitboxDepthScale = asset.isSolid
-    ? Math.max(baseDepthScale, MIN_SOLID_HITBOX_SCALE)
-    : baseDepthScale;
-
-  const hitboxBaseWidth = asset.hitboxBaseWidth ?? asset.width;
-  const hitboxBaseHeight = asset.hitboxBaseHeight ?? asset.height;
-  const hitboxBaseDepth = asset.hitboxBaseDepth ?? asset.width;
-
-  const width = hitboxBaseWidth * colliderScale * hitboxWidthScale;
-  const height = hitboxBaseHeight * colliderScale * baseHeightScale;
-  const depth = hitboxBaseDepth * colliderScale * hitboxDepthScale;
-
-  const offsetX = asset.hitboxOffsetX ?? 0;
-  const offsetY = asset.hitboxOffsetY ?? 0;
-  const offsetZ = asset.hitboxOffsetZ ?? 0;
-
-  return {
-    x: asset.x + offsetX,
-    y: asset.y + asset.height / 2 + offsetY,
-    z: asset.z + offsetZ,
-
-    width,
-    height,
-    depth,
-
-    halfWidth: width / 2,
-    halfHeight: height / 2,
-    halfDepth: depth / 2,
-  };
-}
 
 function App() {
   const [sceneText, setSceneText] = useState(
@@ -64,15 +32,39 @@ function App() {
 
   const [loadingAsset, setLoadingAsset] = useState(false);
   const [loadingParse, setLoadingParse] = useState(false);
+  const [parseError, setParseError] = useState("");
+  const [playerPosition, setPlayerPosition] = useState([0, 0.15, 0]);
+  const [actionHistory, setActionHistory] = useState([]);
 
   const selectedPlacedAsset = placedAssets.find(
     (asset) => asset.placedId === selectedPlacedAssetId
   );
 
+  const nearbyInteractableAsset = useMemo(() => {
+    return findNearestInteractableAsset(
+      playerPosition,
+      placedAssets,
+      createAssetHitbox
+    );
+  }, [playerPosition, placedAssets]);
+
+  const nearbyInteractions = useMemo(() => {
+    if (!nearbyInteractableAsset) {
+      return [];
+    }
+
+    return getPlayableInteractions(nearbyInteractableAsset);
+  }, [nearbyInteractableAsset]);
+
+  const livingNarrative = useMemo(() => {
+    return fillNarrativeBlanks(sceneText, actionHistory);
+  }, [sceneText, actionHistory]);
+
   async function parseScene() {
     if (!sceneText.trim()) return;
 
     setLoadingParse(true);
+    setParseError("");
 
     try {
       const response = await fetch("http://localhost:3001/parse-scene", {
@@ -85,18 +77,39 @@ function App() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to parse scene");
+      }
+
+      if (!Array.isArray(data.assets)) {
+        throw new Error("Parser returned an invalid response");
+      }
+
+      if (data.assets.length === 0) {
+        setAssetCandidates([]);
+        setSelectedAsset(null);
+        setParseError("No objects found in scene text. Try naming specific items.");
+        return;
+      }
+
       const parsedAssets = data.assets.map((asset) => ({
         id: crypto.randomUUID(),
         name: asset.name,
         category: asset.category,
         placementType: asset.placementType ?? "sprite",
         prompt: asset.prompt,
+        interactions: getDefaultInteractionsForCategory(asset.category),
       }));
 
       setAssetCandidates(parsedAssets);
       setSelectedAsset(parsedAssets[0] ?? null);
     } catch (error) {
       console.error("Error parsing scene:", error);
+      setParseError(
+        error.message === "Failed to fetch"
+          ? "Could not reach the server. Start it with: node server/index.js"
+          : error.message
+      );
     } finally {
       setLoadingParse(false);
     }
@@ -185,7 +198,7 @@ function App() {
       ...asset,
       placedId: crypto.randomUUID(),
       x: -1 + offset,
-      y: 0.05,
+      y: 0,
       z: 0 + offset,
       width: 2,
       height: 2,
@@ -200,6 +213,10 @@ function App() {
       hitboxOffsetX: 0,
       hitboxOffsetY: 0,
       hitboxOffsetZ: 0,
+
+      interactions:
+        asset.interactions ??
+        getDefaultInteractionsForCategory(asset.category),
     };
 
     setPlacedAssets((previousPlacedAssets) => [
@@ -275,6 +292,23 @@ function App() {
       .map((asset) => createAssetHitbox(asset));
   }, [placedAssets]);
 
+  function performInteraction(action) {
+    if (!nearbyInteractableAsset) {
+      return;
+    }
+
+    const historyEntry = createActionHistoryEntry(
+      nearbyInteractableAsset,
+      action
+    );
+
+    setActionHistory((previousHistory) => [...previousHistory, historyEntry]);
+  }
+
+  function clearActionHistory() {
+    setActionHistory([]);
+  }
+
   return (
     <main className="app">
       <header>
@@ -282,50 +316,63 @@ function App() {
       </header>
 
       <div className="workspace">
-        <section className="left-panel panel">
-          <h2>Scene Text</h2>
+        <div className="left-panel">
+          <section className="panel scene-panel">
+            <h2>Scene Text</h2>
 
-          <textarea
-            value={sceneText}
-            onChange={(event) => setSceneText(event.target.value)}
-            rows={7}
-          />
+            <textarea
+              value={sceneText}
+              onChange={(event) => setSceneText(event.target.value)}
+              rows={7}
+            />
 
-          <button
-            className="button-bottom-margin"
-            onClick={parseScene}
-            disabled={loadingParse}
-          >
-            {loadingParse ? "Parsing..." : "Parse Scene"}
-          </button>
+            <button
+              className="button-bottom-margin"
+              onClick={parseScene}
+              disabled={loadingParse}
+            >
+              {loadingParse ? "Parsing..." : "Parse Scene"}
+            </button>
 
-          <h2>Asset Candidates</h2>
+            {parseError && <p className="parse-error">{parseError}</p>}
 
-          {assetCandidates.length === 0 ? (
-            <p className="empty">No assets parsed yet.</p>
-          ) : (
-            <div className="candidate-list">
-              {assetCandidates.map((asset) => (
-                <button
-                  key={asset.id}
-                  className={
-                    selectedAsset?.id === asset.id
-                      ? "candidate-pill selected"
-                      : "candidate-pill"
-                  }
-                  onClick={() => setSelectedAsset(asset)}
-                >
-                  {asset.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+            <h2 className="section-divider-heading">Asset Candidates</h2>
 
-        <section className="room-panel panel">
-          <h2>Isometric Room</h2>
+            {assetCandidates.length === 0 ? (
+              <p className="empty">No assets parsed yet.</p>
+            ) : (
+              <div className="candidate-list">
+                {assetCandidates.map((asset) => (
+                  <button
+                    key={asset.id}
+                    className={
+                      selectedAsset?.id === asset.id
+                        ? "candidate-pill selected"
+                        : "candidate-pill"
+                    }
+                    onClick={() => setSelectedAsset(asset)}
+                  >
+                    {asset.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
 
-          <div className="room-canvas">
+          <section className="panel story-panel">
+            <ActionHistoryPanel
+              actionHistory={actionHistory}
+              livingNarrative={livingNarrative}
+              onClearHistory={clearActionHistory}
+            />
+          </section>
+        </div>
+
+        <div className="center-panel">
+          <section className="room-panel panel">
+            <h2>Isometric Room</h2>
+
+            <div className="room-canvas">
             <Canvas
               orthographic
               camera={{
@@ -354,319 +401,95 @@ function App() {
                   />
                 ))}
 
-                <Player collisionObjects={collisionObjects} />
+                <Player
+                  collisionObjects={collisionObjects}
+                  onPositionChange={setPlayerPosition}
+                />
               </group>
             </Canvas>
           </div>
+          </section>
 
-          <h2>Placed Assets</h2>
+          <section className="panel interaction-panel">
+            <h2>Interact</h2>
 
-          {placedAssets.length === 0 ? (
-            <p className="empty">Placed assets will appear here.</p>
-          ) : (
-            <div className="placed-list">
-              {placedAssets.map((asset) => (
-                <article
-                  key={asset.placedId}
-                  className={
-                    selectedPlacedAssetId === asset.placedId
-                      ? `placed-control-card selected ${
-                          asset.isLocked ? "locked" : ""
-                        }`
-                      : `placed-control-card ${asset.isLocked ? "locked" : ""}`
-                  }
-                  onClick={() => selectPlacedAsset(asset.placedId)}
-                >
-                  <div className="placed-card-header">
-                    <p>{asset.name}</p>
-
-                    {asset.isLocked && (
-                      <span className="lock-badge">Locked</span>
-                    )}
-                  </div>
-
-                  {selectedPlacedAssetId === asset.placedId && (
-                    <div className="hitbox-controls">
-                      <p className="control-hint">
-                        {asset.isLocked
-                          ? "This asset is locked. Unlock it to move or edit it."
-                          : "Drag the asset in the room to move it."}
-                      </p>
-
-                      <button
-                        className="secondary-button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleAssetLock(asset.placedId);
-                        }}
-                      >
-                        {asset.isLocked ? "🔓 Unlock Object" : "🔒 Lock Object"}
-                      </button>
-
-                      <div className="hitbox-toggle-row">
-                        <label className="control-hint cozy-checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(asset.isSolid)}
-                            disabled={asset.isLocked}
-                            onChange={(event) =>
-                              updatePlacedAsset(asset.placedId, {
-                                isSolid: event.target.checked,
-                              })
-                            }
-                            onClick={(event) => event.stopPropagation()}
-                          />{" "}
-                          Collidable
-                        </label>
-                      </div>
-
-                      <div className="hitbox-group">
-                        <p className="hitbox-group-title">Size</p>
-
-                        <label className="control-hint slider-label">
-                          Hitbox Size
-                          <span>
-                            {Math.round((asset.colliderScale ?? 0.75) * 100)}%
-                          </span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="-1"
-                          max="1"
-                          step="0.05"
-                          value={asset.colliderScale ?? 0.75}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              colliderScale: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-
-                        <label className="control-hint slider-label">
-                          Width
-                          <span>
-                            {Math.round(
-                              (asset.hitboxWidthScale ?? 0.8) * 100
-                            )}
-                            %
-                          </span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="0.3"
-                          max="1.4"
-                          step="0.05"
-                          value={asset.hitboxWidthScale ?? 0.8}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxWidthScale: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-
-                        <label className="control-hint slider-label">
-                          Height
-                          <span>
-                            {Math.round(
-                              (asset.hitboxHeightScale ?? 1) * 100
-                            )}
-                            %
-                          </span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="0.3"
-                          max="1.5"
-                          step="0.05"
-                          value={asset.hitboxHeightScale ?? 1}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxHeightScale: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-
-                        <label className="control-hint slider-label">
-                          Depth
-                          <span>
-                            {Math.round(
-                              (asset.hitboxDepthScale ?? 0.6) * 100
-                            )}
-                            %
-                          </span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="0.3"
-                          max="1.4"
-                          step="0.05"
-                          value={asset.hitboxDepthScale ?? 0.6}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxDepthScale: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-                      </div>
-
-                      <div className="hitbox-group">
-                        <p className="hitbox-group-title">Position</p>
-
-                        <label className="control-hint slider-label">
-                          Offset X
-                          <span>{(asset.hitboxOffsetX ?? 0).toFixed(2)}</span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="-1.5"
-                          max="1.5"
-                          step="0.05"
-                          value={asset.hitboxOffsetX ?? 0}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxOffsetX: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-
-                        <label className="control-hint slider-label">
-                          Offset Y
-                          <span>{(asset.hitboxOffsetY ?? 0).toFixed(2)}</span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="-1"
-                          max="1.5"
-                          step="0.05"
-                          value={asset.hitboxOffsetY ?? 0}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxOffsetY: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-
-                        <label className="control-hint slider-label">
-                          Offset Z
-                          <span>{(asset.hitboxOffsetZ ?? 0).toFixed(2)}</span>
-                        </label>
-                        <input
-                          className="cozy-slider"
-                          type="range"
-                          min="-1.5"
-                          max="1.5"
-                          step="0.05"
-                          value={asset.hitboxOffsetZ ?? 0}
-                          disabled={asset.isLocked}
-                          onChange={(event) =>
-                            updatePlacedAsset(asset.placedId, {
-                              hitboxOffsetZ: Number(event.target.value),
-                            })
-                          }
-                          onClick={(event) => event.stopPropagation()}
-                        />
-                      </div>
-
-                      <button
-                        className="secondary-button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removePlacedAsset(asset.placedId);
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="right-panel panel">
-          <h2>Selected Asset</h2>
-
-          {selectedAsset ? (
-            <div className="asset-editor">
-              <p className="asset-name">{selectedAsset.name}</p>
-              <p className="asset-category">{selectedAsset.category}</p>
-
-              <label>Asset Prompt</label>
-
-              <textarea
-                value={selectedAsset.prompt}
-                onChange={(event) =>
-                  updateSelectedAssetPrompt(event.target.value)
-                }
-                rows={6}
-              />
-
-              <button
-                className="button-bottom-margin"
-                onClick={generateSelectedAsset}
-                disabled={loadingAsset}
-              >
-                {loadingAsset ? "Generating..." : "Generate / Regenerate"}
-              </button>
-
-              {selectedAsset.imageUrl && (
-                <>
-                  <img
-                    src={selectedAsset.imageUrl}
-                    alt={selectedAsset.name}
-                    className="asset-preview"
-                  />
-
-                  <button
-                    className="place-button"
-                    onClick={() => placeAsset(selectedAsset)}
-                  >
-                    Place in Room
-                  </button>
-                </>
+            <div className="interaction-panel-content">
+              {nearbyInteractableAsset && nearbyInteractions.length > 0 ? (
+                <InteractionOverlay
+                  asset={nearbyInteractableAsset}
+                  actions={nearbyInteractions}
+                  onPerformAction={performInteraction}
+                />
+              ) : (
+                <p className="empty interaction-panel-placeholder">
+                  Walk near a placed object to see actions.
+                </p>
               )}
             </div>
-          ) : (
-            <p className="empty">Click an asset candidate.</p>
-          )}
+          </section>
+        </div>
 
-          <h2>Asset Library</h2>
+        <div className="right-panel">
+          <section className="panel selected-asset-panel">
+            <h2>Selected Asset</h2>
 
-          {assetLibrary.length === 0 ? (
-            <p className="empty">Generated assets will appear here.</p>
-          ) : (
-            <div className="library-grid">
-              {assetLibrary.map((asset) => (
-                <article key={asset.id} className="library-card">
-                  <img src={asset.imageUrl} alt={asset.name} />
-                  <p>{asset.name}</p>
+            {selectedAsset ? (
+              <div className="asset-editor">
+                <p className="asset-name">{selectedAsset.name}</p>
+                <p className="asset-category">{selectedAsset.category}</p>
 
-                  <button onClick={() => setSelectedAsset(asset)}>Edit</button>
-                  <button onClick={() => placeAsset(asset)}>Place</button>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+                <label>Asset Prompt</label>
+
+                <textarea
+                  value={selectedAsset.prompt}
+                  onChange={(event) =>
+                    updateSelectedAssetPrompt(event.target.value)
+                  }
+                  rows={6}
+                />
+
+                <button
+                  className="button-bottom-margin"
+                  onClick={generateSelectedAsset}
+                  disabled={loadingAsset}
+                >
+                  {loadingAsset ? "Generating..." : "Generate / Regenerate"}
+                </button>
+
+                {selectedAsset.imageUrl && (
+                  <>
+                    <img
+                      src={selectedAsset.imageUrl}
+                      alt={selectedAsset.name}
+                      className="asset-preview"
+                    />
+
+                    <button
+                      className="place-button"
+                      onClick={() => placeAsset(selectedAsset)}
+                    >
+                      Place in Room
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="empty">Click an asset candidate.</p>
+            )}
+          </section>
+
+          <section className="panel placed-assets-panel">
+            <PlacedAssetsPanel
+              placedAssets={placedAssets}
+              selectedPlacedAssetId={selectedPlacedAssetId}
+              onSelectPlacedAsset={selectPlacedAsset}
+              onToggleLock={toggleAssetLock}
+              onUpdatePlacedAsset={updatePlacedAsset}
+              onUpdatePlacedAssetEvenIfLocked={updatePlacedAssetEvenIfLocked}
+              onRemovePlacedAsset={removePlacedAsset}
+            />
+          </section>
+        </div>
       </div>
     </main>
   );

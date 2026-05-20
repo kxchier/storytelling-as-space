@@ -32,8 +32,12 @@ function isInsideRoom(nextX, nextZ) {
   );
 }
 
-function Player({ collisionObjects = [] }) {
+function Player({ collisionObjects = [], onPositionChange }) {
   const [position, setPosition] = useState([0, 0.15, 0]);
+
+  useEffect(() => {
+    onPositionChange?.(position);
+  }, [position, onPositionChange]);
 
   useEffect(() => {
     function handleKeyDown(event) {
