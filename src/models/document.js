@@ -92,7 +92,7 @@ export function createEmptyProject() {
 
   return {
     version: DOCUMENT_VERSION,
-    title: "Mirae on the train",
+    title: "Childhood Bedroom",
     passages: [
       {
         id: introId,
