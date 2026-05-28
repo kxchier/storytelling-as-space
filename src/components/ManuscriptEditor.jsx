@@ -120,8 +120,12 @@ function ManuscriptEditor({
               onMouseUp={() => handleSelection(passage.id, passage.type)}
             >
               <div className="manuscript-passage-space-top">
-                <span className="manuscript-passage-kind">Isometric space</span>
+                <span
+                  className="manuscript-passage-space-spacer"
+                  aria-hidden="true"
+                />
                 <div className="manuscript-passage-space-meta">
+                  <span className="manuscript-passage-kind">Isometric space</span>
                   <span className="manuscript-space-title">
                     {space?.title ?? "Explorable space"}
                   </span>
@@ -133,16 +137,18 @@ function ManuscriptEditor({
                     · {space?.status ?? "draft"}
                   </span>
                 </div>
-                {isSelected && (
-                  <button
-                    type="button"
-                    className="passage-gutter-button manuscript-passage-space-edit"
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onClick={() => onOpenSpace(passage.id)}
-                  >
-                    Edit space
-                  </button>
-                )}
+                <div className="manuscript-passage-space-side manuscript-passage-space-side-right">
+                  {isSelected && (
+                    <button
+                      type="button"
+                      className="passage-gutter-button manuscript-passage-space-edit"
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={() => onOpenSpace(passage.id)}
+                    >
+                      Edit space
+                    </button>
+                  )}
+                </div>
               </div>
 
               <p className="manuscript-space-hint control-hint">
