@@ -8,12 +8,26 @@ body,
 
 body {
   overflow-x: hidden;
+  background-color: #f7f1ea;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: #f7f1ea;
+  background-image: url("./assets/storytelling.png");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .app {
   min-height: 100vh;
   padding: 24px;
-  background: #f7f1ea;
+  background: transparent;
   color: #2d2520;
   box-sizing: border-box;
 }
