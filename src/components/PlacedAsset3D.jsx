@@ -34,7 +34,7 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
 
     const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#8c735f";
+    ctx.fillStyle = "#ada8a3";
     ctx.beginPath();
     ctx.roundRect(8, 8, 112, 112, 20);
     ctx.fill();
