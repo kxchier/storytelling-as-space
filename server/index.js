@@ -13,9 +13,13 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+  : true;
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 const replicate = new Replicate({
@@ -202,6 +206,10 @@ app.post("/generate-asset", async (req, res) => {
     }
   });
 
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

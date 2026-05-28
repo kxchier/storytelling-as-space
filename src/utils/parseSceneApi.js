@@ -1,7 +1,8 @@
 import { findPhraseAnchor, phraseAnchorDiffersFromName } from "../models/document";
+import { apiUrl } from "./apiBase";
 
 export async function parseSceneExcerpt(sceneText) {
-  const response = await fetch("http://localhost:3001/parse-scene", {
+  const response = await fetch(apiUrl("/parse-scene"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sceneText }),

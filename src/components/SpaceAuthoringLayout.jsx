@@ -21,6 +21,7 @@ import {
   isWinConditionMet,
 } from "../utils/interactions";
 import { enrichParsedAssets, parseSceneExcerpt } from "../utils/parseSceneApi";
+import { apiUrl } from "../utils/apiBase";
 
 function SpaceAuthoringLayout({
   passage,
@@ -116,7 +117,7 @@ function SpaceAuthoringLayout({
     setLoadingAsset(true);
 
     try {
-      const response = await fetch("http://localhost:3001/generate-asset", {
+      const response = await fetch(apiUrl("/generate-asset"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: selectedAsset.prompt }),

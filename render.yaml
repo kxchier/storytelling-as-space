@@ -1,0 +1,14 @@
+# Render Blueprint for the Express + Python (spaCy) backend.
+# In Render: New > Blueprint > point at this repo. Then set REPLICATE_API_TOKEN.
+services:
+  - type: web
+    name: storytelling-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: REPLICATE_API_TOKEN
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
