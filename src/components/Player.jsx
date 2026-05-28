@@ -153,7 +153,11 @@ function SimpleCharacter({ lastMoveRef }) {
   );
 }
 
-function Player({ collisionObjects = [], onPositionChange }) {
+function Player({
+  collisionObjects = [],
+  onPositionChange,
+  inputEnabled = true,
+}) {
   const lastMoveRef = useRef(0);
 
   const [playerState, setPlayerState] = useState({
@@ -168,7 +172,11 @@ function Player({ collisionObjects = [], onPositionChange }) {
   }, [position, onPositionChange]);
 
   useEffect(() => {
+    if (!inputEnabled) return undefined;
+
     function handleKeyDown(event) {
+      if (event.repeat) return;
+
       setPlayerState((previousState) => {
         const [x, y, z] = previousState.position;
         let nextX = x;
@@ -218,7 +226,7 @@ function Player({ collisionObjects = [], onPositionChange }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [collisionObjects]);
+  }, [collisionObjects, inputEnabled]);
 
   const [x, , z] = position;
 

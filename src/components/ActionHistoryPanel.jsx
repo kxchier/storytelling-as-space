@@ -34,11 +34,12 @@ function ActionHistoryPanel({
         </>
       )}
 
-      <h2 className="section-divider-heading">Living Story</h2>
+      <h2 className="section-divider-heading">Woven passage preview</h2>
 
       <div className="narrative-blank-card">
         <p className="narrative-blank-text">
-          {livingNarrative || "Your story will grow here."}
+          {livingNarrative ||
+            "Lead-in plus exploration lines — the scene section is replaced on exit."}
         </p>
       </div>
     </>

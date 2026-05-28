@@ -6,16 +6,19 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "examine",
       label: "Examine",
       narrativeTemplate: "She studied the {name}, taking in every worn detail.",
+      completesSpace: false,
     },
     {
       id: "touch",
       label: "Touch",
       narrativeTemplate: "She rested her hand on the {name}.",
+      completesSpace: false,
     },
     {
       id: "lean",
       label: "Lean against",
       narrativeTemplate: "She leaned against the {name} for a moment.",
+      completesSpace: false,
     },
   ],
   object: [
@@ -23,16 +26,25 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "examine",
       label: "Examine",
       narrativeTemplate: "She turned the {name} over in her hands.",
+      completesSpace: false,
     },
     {
       id: "pick-up",
       label: "Pick up",
       narrativeTemplate: "She picked up the {name}.",
+      completesSpace: false,
     },
     {
       id: "use",
       label: "Use",
       narrativeTemplate: "She used the {name}, careful and deliberate.",
+      completesSpace: false,
+    },
+    {
+      id: "open",
+      label: "Open",
+      narrativeTemplate: "She opened the {name}.",
+      completesSpace: false,
     },
   ],
   decor: [
@@ -40,11 +52,13 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "examine",
       label: "Examine",
       narrativeTemplate: "She looked closely at the {name}.",
+      completesSpace: false,
     },
     {
       id: "adjust",
       label: "Straighten",
       narrativeTemplate: "She nudged the {name} into a neater place.",
+      completesSpace: false,
     },
   ],
   architecture: [
@@ -52,11 +66,13 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "look-through",
       label: "Look through",
       narrativeTemplate: "She gazed through the {name}, lost in thought.",
+      completesSpace: false,
     },
     {
       id: "listen",
       label: "Listen",
       narrativeTemplate: "She listened at the {name}.",
+      completesSpace: false,
     },
   ],
   lighting: [
@@ -64,11 +80,13 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "examine",
       label: "Examine",
       narrativeTemplate: "The {name} cast a soft glow across her face.",
+      completesSpace: false,
     },
     {
       id: "adjust",
       label: "Adjust",
       narrativeTemplate: "She adjusted the {name} until the light felt right.",
+      completesSpace: false,
     },
   ],
   nature: [
@@ -76,11 +94,13 @@ const DEFAULT_INTERACTIONS_BY_CATEGORY = {
       id: "examine",
       label: "Examine",
       narrativeTemplate: "She brushed a finger along the {name}.",
+      completesSpace: false,
     },
     {
       id: "tend",
       label: "Tend to",
       narrativeTemplate: "She tended to the {name} with quiet care.",
+      completesSpace: false,
     },
   ],
 };
@@ -94,11 +114,14 @@ export function getDefaultInteractionsForCategory(category) {
 }
 
 export function getInteractionsForAsset(asset) {
-  if (asset.interactions?.length) {
-    return asset.interactions;
+  if (!asset.interactions?.length) {
+    return [];
   }
 
-  return getDefaultInteractionsForCategory(asset.category);
+  return asset.interactions.map((action) => ({
+    ...action,
+    completesSpace: Boolean(action.completesSpace),
+  }));
 }
 
 export function getPlayableInteractions(asset) {
@@ -110,11 +133,13 @@ export function getPlayableInteractions(asset) {
 export function createInteractionAction({
   label = "",
   narrativeTemplate = "She interacted with the {name}.",
+  completesSpace = false,
 } = {}) {
   return {
     id: crypto.randomUUID(),
     label,
     narrativeTemplate,
+    completesSpace,
   };
 }
 
@@ -124,6 +149,56 @@ export function buildNarrativeLine(action, assetName) {
     `She chose to ${action.label.toLowerCase()} the {name}.`;
 
   return template.replace(/\{name\}/g, assetName);
+}
+
+export function buildExplorationNarrative(actionHistory) {
+  if (!actionHistory?.length) return "";
+  return actionHistory.map((entry) => entry.narrativeLine).join(" ");
+}
+
+export function buildSpaceExitNarrative(leadIn, actionHistory) {
+  const exploration = buildExplorationNarrative(actionHistory);
+  const lead = leadIn?.trim() ?? "";
+
+  if (!exploration) return lead;
+  if (!lead) return exploration;
+
+  return `${lead}\n\n${exploration}`;
+}
+
+export function actionCompletesSpace(action) {
+  return Boolean(action?.completesSpace);
+}
+
+export function historyEntryCompletesSpace(entry, placedAssets) {
+  const asset = placedAssets.find((item) => item.placedId === entry.placedId);
+  if (!asset) return false;
+
+  const interactions = getInteractionsForAsset(asset);
+  const matched = interactions.find((action) => action.id === entry.actionId);
+  return actionCompletesSpace(matched);
+}
+
+export function getSpaceWinCondition(placedAssets) {
+  for (const asset of placedAssets) {
+    for (const action of getInteractionsForAsset(asset)) {
+      if (actionCompletesSpace(action)) {
+        return {
+          placedId: asset.placedId,
+          assetName: asset.name,
+          actionId: action.id,
+          actionLabel: action.label,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+export function isWinConditionMet(actionHistory, placedAssets) {
+  if (!actionHistory?.length) return false;
+  const lastEntry = actionHistory[actionHistory.length - 1];
+  return historyEntryCompletesSpace(lastEntry, placedAssets);
 }
 
 export function isPlayerInHitboxProximity(playerPosition, hitbox) {
@@ -166,6 +241,7 @@ export function findNearestInteractableAsset(playerPosition, placedAssets, getHi
   return nearestAsset;
 }
 
+/** @deprecated Use buildSpaceExitNarrative for block-level spaces */
 export function fillNarrativeBlanks(sceneText, actionHistory) {
   let result = sceneText;
   let historyIndex = 0;
@@ -201,5 +277,6 @@ export function createActionHistoryEntry(asset, action) {
     actionId: action.id,
     actionLabel: action.label,
     narrativeLine: buildNarrativeLine(action, asset.name),
+    completesSpace: actionCompletesSpace(action),
   };
 }

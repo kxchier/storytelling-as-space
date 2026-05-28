@@ -72,7 +72,6 @@ function PlacedAssetsPanel({
 
                   <InteractionActionsEditor
                     assetName={asset.name}
-                    category={asset.category}
                     interactions={asset.interactions}
                     disabled={asset.isLocked}
                     onChange={(interactions) =>
