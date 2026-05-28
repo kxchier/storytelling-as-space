@@ -88,7 +88,7 @@ export function createEmptyProject() {
   const outroId = createId();
 
   const sceneText =
-    "The seats were empty except for a forgotten scarf, a half-open suitcase, and the bulletin board at the far end of the car.";
+    "An unmade bed sits against the left wall, its blanket wrinkled as though someone had just climbed out. Across from it is a wooden desk crowded with loose papers, old notebooks, a chipped mug full of pens, and a lamp with a crooked shade.";
 
   return {
     version: DOCUMENT_VERSION,
@@ -97,7 +97,7 @@ export function createEmptyProject() {
       {
         id: introId,
         type: "fixed",
-        text: "Mirae had been waiting on the platform long enough to forget why she was early. The train slid in without ceremony. Mirae stepped into the train car, clutching the folded note in her sleeve.",
+        text: "She had not opened her bedroom door in years. Her fingers slid over the cool metal handle, pausing where it dipped beneath her thumb. When she finally took a deep breath and turned the knob, the room gave way slowly, exhaling with her as she stepped inside.",
       },
       {
         id: spaceId,
@@ -109,7 +109,7 @@ export function createEmptyProject() {
       {
         id: outroId,
         type: "fixed",
-        text: "She sat by the window as the city fell away, the note still unread in her sleeve.",
+        text: "When she stepped back into the hallway, the room did not feel smaller behind her. If anything, it had widened, unfolding in her mind through the things she had almost forgotten.",
       },
     ],
     spaces: {
