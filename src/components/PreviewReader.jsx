@@ -30,7 +30,9 @@ function PreviewReader({
   const [playerPosition, setPlayerPosition] = useState([0, 0, 0]);
   const [exitNarrative, setExitNarrative] = useState("");
   const [roomFocused, setRoomFocused] = useState(false);
+  const [flashLine, setFlashLine] = useState(null);
   const roomWrapRef = useRef(null);
+  const flashTimeoutRef = useRef(null);
 
   const focusPassageIndex = useMemo(() => {
     if (!focusPassageId) return -1;
@@ -54,6 +56,12 @@ function PreviewReader({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    };
   }, []);
 
   const currentPassage = project.passages[passageIndex];
@@ -107,11 +115,18 @@ function PreviewReader({
     setPhase("merged");
   }
 
+  function flashInteraction(line) {
+    setFlashLine({ id: crypto.randomUUID(), text: line });
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => setFlashLine(null), 3200);
+  }
+
   function performInteraction(action) {
     if (!nearbyInteractableAsset) return;
     const entry = createActionHistoryEntry(nearbyInteractableAsset, action);
     const nextHistory = [...actionHistory, entry];
     setActionHistory(nextHistory);
+    flashInteraction(entry.narrativeLine);
 
     if (isWinConditionMet(nextHistory, placedAssets)) {
       completeSpace(nextHistory);
@@ -125,6 +140,7 @@ function PreviewReader({
 
   function enterSpace() {
     setActionHistory([]);
+    setFlashLine(null);
     setPlayerPosition([0, 0, 0]);
     setPhase("exploring");
     requestAnimationFrame(focusPreviewRoom);
@@ -223,6 +239,11 @@ function PreviewReader({
             aria-label="Scene preview — use arrow keys or WASD to walk"
             onPointerDown={focusPreviewRoom}
           >
+            {flashLine && (
+              <div className="preview-interaction-flash" key={flashLine.id}>
+                {flashLine.text}
+              </div>
+            )}
             <Canvas
               orthographic
               camera={{

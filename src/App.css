@@ -1482,9 +1482,70 @@ button:hover:not(:disabled) {
 .preview-interact-bar {
   position: absolute;
   left: 50%;
-  bottom: 14px;
+  bottom: 10px;
   transform: translateX(-50%);
   z-index: 5;
+  max-width: 94%;
+}
+
+.preview-interact-bar .interaction-overlay {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: 10px;
+  gap: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.preview-interact-bar .interaction-overlay-title {
+  font-size: 11px;
+}
+
+.preview-interact-bar .interaction-action-button {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.preview-interact-bar .preview-walk-hint {
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 10px;
+  background: rgba(253, 252, 249, 0.9);
+}
+
+.preview-interaction-flash {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  max-width: 90%;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(72, 68, 65, 0.92);
+  color: #fdfcf9;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 8px 20px var(--shadow-medium);
+  animation: preview-flash-in 0.25s ease;
+}
+
+@keyframes preview-flash-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .leave-space-button {
