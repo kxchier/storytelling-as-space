@@ -97,12 +97,7 @@ export function createEmptyProject() {
       {
         id: introId,
         type: "fixed",
-        text: "Mirae had been waiting on the platform long enough to forget why she was early. The train slid in without ceremony.",
-      },
-      {
-        id: approachId,
-        type: "fixed",
-        text: "Mirae stepped into the train car, clutching the folded note in her sleeve.",
+        text: "Mirae had been waiting on the platform long enough to forget why she was early. The train slid in without ceremony. Mirae stepped into the train car, clutching the folded note in her sleeve.",
       },
       {
         id: spaceId,
