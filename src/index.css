@@ -1,4 +1,5 @@
 :root {
+  --zoom: 0.9;
   --text: #706c67;
   --text-h: #403c38;
   --bg: #f8f6f3;
@@ -51,6 +52,7 @@
 
 body {
   margin: 0;
+  zoom: var(--zoom);
 }
 
 #root {
@@ -59,7 +61,7 @@ body {
   margin: 0 auto;
   text-align: center;
   border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: calc(100svh / var(--zoom));
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
