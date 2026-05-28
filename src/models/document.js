@@ -114,7 +114,7 @@ export function createEmptyProject() {
     ],
     spaces: {
       [spaceId]: createEmptySpace(spaceId, {
-        title: "Train car",
+        title: "Bedroom",
         sceneText,
       }),
     },
