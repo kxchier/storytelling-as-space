@@ -8,10 +8,7 @@ import InteractionOverlay from "./InteractionOverlay";
 import PlacedAssetsPanel from "./PlacedAssetsPanel";
 import SceneParsePanel from "./SceneParsePanel";
 
-import {
-  getSpacePassageFields,
-  phraseAnchorDiffersFromName,
-} from "../models/document";
+import { getSpacePassageFields } from "../models/document";
 import { createAssetHitbox } from "../utils/hitbox";
 import {
   createActionHistoryEntry,
@@ -84,7 +81,7 @@ function SpaceAuthoringLayout({
         return;
       }
 
-      const parsedAssets = enrichParsedAssets(assets, sceneText);
+      const parsedAssets = enrichParsedAssets(assets);
       patchSpace({
         assetCandidates: parsedAssets,
         selectedAssetId: parsedAssets[0]?.id ?? null,
@@ -391,15 +388,6 @@ function SpaceAuthoringLayout({
               <div className="asset-editor">
                 <p className="asset-name">{selectedAsset.name}</p>
                 <p className="asset-category">{selectedAsset.category}</p>
-                {selectedAsset.sourcePhrase &&
-                  phraseAnchorDiffersFromName(
-                    selectedAsset.name,
-                    selectedAsset.sourcePhrase
-                  ) && (
-                    <p className="control-hint">
-                      From: &ldquo;{selectedAsset.sourcePhrase}&rdquo;
-                    </p>
-                  )}
                 <label>Asset prompt</label>
                 <textarea
                   value={selectedAsset.prompt}

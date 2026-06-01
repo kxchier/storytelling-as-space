@@ -1,4 +1,3 @@
-import { findPhraseAnchor, phraseAnchorDiffersFromName } from "../models/document";
 import { apiUrl } from "./apiBase";
 
 export async function parseSceneExcerpt(sceneText) {
@@ -21,24 +20,13 @@ export async function parseSceneExcerpt(sceneText) {
   return data.assets;
 }
 
-export function enrichParsedAssets(assets, excerpt) {
-  return assets.map((asset) => {
-    const anchor = findPhraseAnchor(excerpt, asset.name);
-    const sourcePhrase =
-      anchor?.phrase &&
-      phraseAnchorDiffersFromName(asset.name, anchor.phrase)
-        ? anchor.phrase
-        : null;
-
-    return {
-      id: crypto.randomUUID(),
-      name: asset.name,
-      category: asset.category,
-      placementType: asset.placementType ?? "sprite",
-      prompt: asset.prompt,
-      interactions: [],
-      sourcePhrase,
-      sourceAnchor: anchor,
-    };
-  });
+export function enrichParsedAssets(assets) {
+  return assets.map((asset) => ({
+    id: crypto.randomUUID(),
+    name: asset.name,
+    category: asset.category,
+    placementType: asset.placementType ?? "sprite",
+    prompt: asset.prompt,
+    interactions: [],
+  }));
 }

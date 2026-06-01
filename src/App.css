@@ -1590,6 +1590,8 @@ button:hover:not(:disabled) {
 .manuscript-textarea-scene {
   border: 1px dashed var(--color-accent-neutral);
   background: var(--color-surface-space);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .space-section-panel .space-section-scene-text {

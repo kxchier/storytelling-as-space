@@ -1,4 +1,3 @@
-import { phraseAnchorDiffersFromName } from "../models/document";
 import { getSpaceWinCondition } from "../utils/interactions";
 
 function SceneParsePanel({
@@ -55,17 +54,9 @@ function SceneParsePanel({
                     : "candidate-pill"
                 }
                 onClick={() => onSelectAsset(asset.id)}
-                title={
-                  asset.sourcePhrase
-                    ? `From: "${asset.sourcePhrase}"`
-                    : asset.name
-                }
+                title={asset.name}
               >
                 {asset.name}
-                {asset.sourcePhrase &&
-                  phraseAnchorDiffersFromName(asset.name, asset.sourcePhrase) && (
-                    <span className="candidate-anchor"> · {asset.sourcePhrase}</span>
-                  )}
               </button>
             ))}
           </div>
