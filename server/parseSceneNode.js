@@ -1,3 +1,5 @@
+import { buildAssetPrompt } from "./assetPrompt.js";
+
 const IGNORE_WORDS = new Set([
   "she",
   "he",
@@ -60,26 +62,6 @@ function placementType(category, name) {
   return "sprite";
 }
 
-function buildPrompt(name) {
-  return [
-    `A single isolated isometric 2D game asset of ${name}.`,
-    "The image should contain exactly one object.",
-    "3/4 top-down view.",
-    "Front-facing isometric sprite.",
-    "Cozy illustrated style.",
-    "Centered object only.",
-    "Transparent background.",
-    "No white background.",
-    "No floor.",
-    "No wall.",
-    "No room.",
-    "No environment.",
-    "No background scene.",
-    "No extra objects.",
-    "Sticker-like isolated asset.",
-  ].join(" ");
-}
-
 function addAsset(assets, seen, rawName) {
   const name = cleanName(rawName);
 
@@ -95,7 +77,7 @@ function addAsset(assets, seen, rawName) {
     name,
     category,
     placementType: placementType(category, name),
-    prompt: buildPrompt(name),
+    prompt: buildAssetPrompt(name),
   });
 }
 

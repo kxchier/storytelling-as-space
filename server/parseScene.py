@@ -1,8 +1,12 @@
 import sys
+import os
 import json
 import spacy
 
 nlp = spacy.load("en_core_web_sm")
+
+with open(os.path.join(os.path.dirname(__file__), "assetPrompt.json")) as f:
+    PROMPT_TEMPLATE = json.load(f)
 
 IGNORE_WORDS = {
     "she", "he", "they", "it", "rain", "sadness", "silence", "memory",
@@ -38,23 +42,8 @@ def placement_type(category, name):
     return "sprite"
 
 def build_prompt(name):
-    return (
-        f"A single isolated isometric 2D game asset of {name}. "
-        "The image should contain exactly one object. "
-        "3/4 top-down view. "
-        "Front-facing isometric sprite. "
-        "Cozy illustrated style. "
-        "Centered object only. "
-        "Transparent background. "
-        "No white background. "
-        "No floor. "
-        "No wall. "
-        "No room. "
-        "No environment. "
-        "No background scene. "
-        "No extra objects. "
-        "Sticker-like isolated asset."
-    )
+    name_line = PROMPT_TEMPLATE["nameTemplate"].format(name=name)
+    return " ".join([name_line, *PROMPT_TEMPLATE["suffix"]])
 
 scene_text = sys.stdin.read()
 doc = nlp(scene_text)

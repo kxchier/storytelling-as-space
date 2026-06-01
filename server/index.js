@@ -6,6 +6,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parseSceneInNode } from "./parseSceneNode.js";
+import { buildAssetPrompt } from "./assetPrompt.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,31 +27,10 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-function buildAssetPrompt(asset) {
-  return [
-    `A single isolated isometric 2D game asset of ${asset.name}.`,
-    "The image should contain exactly one object.",
-    "3/4 top-down view.",
-    "Front-facing isometric sprite.",
-    "Cozy illustrated style.",
-    "Centered object only.",
-    "Transparent background.",
-    "No white background.",
-    "No floor.",
-    "No wall.",
-    "No room.",
-    "No windows.",
-    "No environment.",
-    "No background scene.",
-    "No extra objects.",
-    "Sticker-like isolated asset."
-  ].join(" ");
-}
-
 function attachPrompts(assets) {
   return assets.map((asset) => ({
     ...asset,
-    prompt: asset.prompt ?? buildAssetPrompt(asset),
+    prompt: asset.prompt ?? buildAssetPrompt(asset.name),
   }));
 }
 
