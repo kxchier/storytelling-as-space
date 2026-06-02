@@ -327,13 +327,15 @@ body::before {
 }
 
 .preview-reader-embedded .preview-room-wrap {
-  height: min(220px, 40vh);
-  min-height: 140px;
+  flex: 1;
+  min-height: 220px;
   border-radius: 12px;
 }
 
 .preview-reader-embedded .preview-exploring-compact {
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
 .preview-reader-embedded .leave-space-button {
