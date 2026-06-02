@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { useThree } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
+import { useSafeTexture } from "../hooks/useSafeTexture";
 import { createLocalAssetHitbox } from "../utils/hitbox";
 
+const MISSING_TEXTURE_COLOR = "#b8a99a";
+
 function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
-  const texture = useTexture(asset.imageUrl);
+  const texture = useSafeTexture(asset.imageUrl);
   const { camera, pointer, raycaster, gl } = useThree();
 
   const [dragMode, setDragMode] = useState(null);
@@ -246,7 +248,12 @@ function PlacedAsset3D({ asset, isSelected, onSelect, onUpdate }) {
         position={[0, spriteCenterY, 0]}
         scale={[asset.width, asset.height, 1]}
       >
-        <spriteMaterial map={texture} transparent depthWrite={false} />
+        <spriteMaterial
+          map={texture}
+          color={texture ? "white" : MISSING_TEXTURE_COLOR}
+          transparent
+          depthWrite={false}
+        />
       </sprite>
 
       {/* Hitbox controls selection and movement. */}

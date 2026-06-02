@@ -13,12 +13,14 @@ import { createAssetHitbox } from "../utils/hitbox";
 import {
   createActionHistoryEntry,
   findNearestInteractableAsset,
+  getDefaultInteractionsForCategory,
   getPlayableInteractions,
   getSpaceWinCondition,
   isWinConditionMet,
 } from "../utils/interactions";
 import { enrichParsedAssets, parseSceneExcerpt } from "../utils/parseSceneApi";
 import { apiUrl } from "../utils/apiBase";
+import { imageUrlToDataUrl } from "../utils/projectImages";
 
 function SpaceAuthoringLayout({
   passage,
@@ -120,7 +122,13 @@ function SpaceAuthoringLayout({
         body: JSON.stringify({ prompt: selectedAsset.prompt }),
       });
       const data = await response.json();
-      const generatedAsset = { ...selectedAsset, imageUrl: data.imageUrl };
+      let imageUrl = data.imageUrl;
+      try {
+        imageUrl = await imageUrlToDataUrl(data.imageUrl);
+      } catch (error) {
+        console.warn("Could not persist generated image locally:", error);
+      }
+      const generatedAsset = { ...selectedAsset, imageUrl };
       patchSpace({
         assetCandidates: assetCandidates.map((asset) =>
           asset.id === generatedAsset.id ? generatedAsset : asset
@@ -154,7 +162,9 @@ function SpaceAuthoringLayout({
       hitboxOffsetX: 0,
       hitboxOffsetY: 0,
       hitboxOffsetZ: 0,
-      interactions: asset.interactions ?? [],
+      interactions: asset.interactions?.length
+        ? asset.interactions
+        : getDefaultInteractionsForCategory(asset.category),
     };
 
     patchSpace({
@@ -289,6 +299,7 @@ function SpaceAuthoringLayout({
             >
               <Canvas
                 orthographic
+                frameloop="always"
                 camera={{
                   position: [6, 6, 6],
                   zoom: 42,

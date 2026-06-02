@@ -1,4 +1,9 @@
-import { PLAYER_PROXIMITY_RADIUS } from "../constants/player";
+import {
+  INTERACTION_PROXIMITY_PADDING,
+  PLAYER_HALF_DEPTH,
+  PLAYER_HALF_WIDTH,
+  PLAYER_INTERACTION_REACH,
+} from "../constants/player";
 
 const DEFAULT_INTERACTIONS_BY_CATEGORY = {
   furniture: [
@@ -114,11 +119,11 @@ export function getDefaultInteractionsForCategory(category) {
 }
 
 export function getInteractionsForAsset(asset) {
-  if (!asset.interactions?.length) {
-    return [];
-  }
+  const source = asset.interactions?.length
+    ? asset.interactions
+    : getDefaultInteractionsForCategory(asset.category);
 
-  return asset.interactions.map((action) => ({
+  return source.map((action) => ({
     ...action,
     completesSpace: Boolean(action.completesSpace),
   }));
@@ -201,14 +206,29 @@ export function isWinConditionMet(actionHistory, placedAssets) {
   return historyEntryCompletesSpace(lastEntry, placedAssets);
 }
 
+function horizontalDistanceToHitbox(playerX, playerZ, hitbox) {
+  const dx = Math.max(0, Math.abs(playerX - hitbox.x) - hitbox.halfWidth);
+  const dz = Math.max(0, Math.abs(playerZ - hitbox.z) - hitbox.halfDepth);
+  return Math.hypot(dx, dz);
+}
+
+/** True when the player's floor footprint overlaps the hitbox (plus a small pad). */
 export function isPlayerInHitboxProximity(playerPosition, hitbox) {
   const [playerX, , playerZ] = playerPosition;
+  const separation = horizontalDistanceToHitbox(playerX, playerZ, hitbox);
+  const maxReach =
+    PLAYER_INTERACTION_REACH + INTERACTION_PROXIMITY_PADDING;
 
+  if (separation <= maxReach) {
+    return true;
+  }
+
+  // Same AABB test as movement collision, with padding — covers axis-aligned approaches.
   return (
     Math.abs(playerX - hitbox.x) <=
-      PLAYER_PROXIMITY_RADIUS + hitbox.halfWidth &&
+      PLAYER_HALF_WIDTH + hitbox.halfWidth + INTERACTION_PROXIMITY_PADDING &&
     Math.abs(playerZ - hitbox.z) <=
-      PLAYER_PROXIMITY_RADIUS + hitbox.halfDepth
+      PLAYER_HALF_DEPTH + hitbox.halfDepth + INTERACTION_PROXIMITY_PADDING
   );
 }
 

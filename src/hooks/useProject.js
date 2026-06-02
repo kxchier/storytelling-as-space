@@ -12,6 +12,7 @@ import {
   serializeProject,
   splitSelectionIntoSpaceParts,
 } from "../models/document";
+import { embedImagesInProject } from "../utils/projectImages";
 
 function getFirstSpaceId(project) {
   return project.passages.find((passage) => passage.type === "space")?.id ?? null;
@@ -185,9 +186,16 @@ export function useProject(initialProject = createEmptyProject()) {
     setPreviewPassageId(passageId);
   }, []);
 
-  const selectPassageForPreview = useCallback((passageId) => {
-    setPreviewPassageId(passageId);
-  }, []);
+  const selectPassageForPreview = useCallback(
+    (passageId) => {
+      setPreviewPassageId(passageId);
+      const passage = project.passages.find((item) => item.id === passageId);
+      if (passage?.type === "space") {
+        setActiveSpaceId(passageId);
+      }
+    },
+    [project.passages]
+  );
 
   const addPassage = useCallback((type, afterPassageId = null) => {
     let newPassageId = null;
@@ -305,8 +313,19 @@ export function useProject(initialProject = createEmptyProject()) {
     });
   }, []);
 
-  const saveProjectToFile = useCallback(() => {
-    const blob = new Blob([serializeProject(project)], {
+  const saveProjectToFile = useCallback(async () => {
+    const { project: projectToSave, failures } = await embedImagesInProject(project);
+
+    if (failures.length > 0) {
+      const names = failures.map((item) => item.name).join(", ");
+      console.warn("Some images could not be embedded in the save file:", failures);
+      window.alert(
+        `Saved, but ${failures.length} image(s) could not be embedded (${names}). ` +
+          "Re-open the space and regenerate those assets, then save again while the images still load in the browser."
+      );
+    }
+
+    const blob = new Blob([serializeProject(projectToSave)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);

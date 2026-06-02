@@ -220,99 +220,118 @@ function PreviewReader({
         </article>
       )}
 
-      {phase === "reading" && currentPassage.type === "space" && (
-        <article className="preview-reading preview-space-invite preview-reading-compact">
-          {sceneText && <p className="preview-scene-epigraph">{sceneText}</p>}
-          <button type="button" onClick={enterSpace}>
-            Enter scene
-          </button>
-        </article>
-      )}
-
-      {phase === "exploring" && currentPassage.type === "space" && (
-        <div className="preview-exploring preview-exploring-compact">
-          <div
-            ref={roomWrapRef}
-            className="preview-room-wrap"
-            tabIndex={0}
-            role="application"
-            aria-label="Scene preview — use arrow keys or WASD to walk"
-            onPointerDown={focusPreviewRoom}
-          >
-            {flashLine && (
-              <div className="preview-interaction-flash" key={flashLine.id}>
-                {flashLine.text}
-              </div>
+      {(phase === "reading" || phase === "exploring") &&
+        currentPassage.type === "space" && (
+          <div className={`preview-space-stage preview-space-stage--${phase}`}>
+            {phase === "reading" && (
+              <article className="preview-reading preview-space-invite preview-reading-compact">
+                {sceneText && (
+                  <p className="preview-scene-epigraph">{sceneText}</p>
+                )}
+                <button type="button" onClick={enterSpace}>
+                  Enter scene
+                </button>
+              </article>
             )}
-            <Canvas
-              orthographic
-              camera={{
-                position: [6, 6, 6],
-                zoom: 42,
-                near: 0.1,
-                far: 1000,
-              }}
-            >
-              <ambientLight intensity={1.5} />
-              <directionalLight position={[5, 8, 5]} intensity={1} />
-              <group position={[0, -2, 0]}>
-                <IsometricRoom />
-                {placedAssets.map((asset) => (
-                  <PlacedAsset3D
-                    key={asset.placedId}
-                    asset={asset}
-                    isSelected={false}
-                    isLocked
-                    onSelect={() => {}}
-                    onUpdate={() => {}}
-                  />
-                ))}
-                <Player
-                  collisionObjects={collisionObjects}
-                  onPositionChange={setPlayerPosition}
-                  inputEnabled={phase === "exploring" && roomFocused}
-                />
-              </group>
-            </Canvas>
 
-            <div className="preview-interact-bar">
-              {nearbyInteractableAsset && nearbyInteractions.length > 0 ? (
-                <InteractionOverlay
-                  asset={nearbyInteractableAsset}
-                  actions={nearbyInteractions}
-                  onPerformAction={performInteraction}
-                />
-              ) : (
-                <p className="empty preview-walk-hint">
-                  {placedAssets.length === 0
-                    ? "Place objects in the Space panel first."
-                    : "Walk near an object (arrow keys or WASD)."}
-                </p>
+            <div
+              className={`preview-exploring preview-exploring-compact ${
+                phase === "reading" ? "preview-exploring-preload" : ""
+              }`}
+            >
+              <div
+                ref={roomWrapRef}
+                className="preview-room-wrap"
+                tabIndex={phase === "exploring" ? 0 : -1}
+                role="application"
+                aria-label="Scene preview — use arrow keys or WASD to walk"
+                aria-hidden={phase !== "exploring"}
+                onPointerDown={phase === "exploring" ? focusPreviewRoom : undefined}
+              >
+                {flashLine && phase === "exploring" && (
+                  <div className="preview-interaction-flash" key={flashLine.id}>
+                    {flashLine.text}
+                  </div>
+                )}
+                <Canvas
+                  orthographic
+                  frameloop="always"
+                  camera={{
+                    position: [6, 6, 6],
+                    zoom: 42,
+                    near: 0.1,
+                    far: 1000,
+                  }}
+                  onCreated={({ gl }) => {
+                    gl.setClearColor(0xf5f0e8, 1);
+                  }}
+                >
+                  <ambientLight intensity={1.5} />
+                  <directionalLight position={[5, 8, 5]} intensity={1} />
+                  <group position={[0, -2, 0]}>
+                    <IsometricRoom />
+                    {placedAssets.map((asset) => (
+                      <PlacedAsset3D
+                        key={asset.placedId}
+                        asset={asset}
+                        isSelected={false}
+                        onSelect={() => {}}
+                        onUpdate={() => {}}
+                      />
+                    ))}
+                    <Player
+                      collisionObjects={collisionObjects}
+                      onPositionChange={setPlayerPosition}
+                      inputEnabled={phase === "exploring" && roomFocused}
+                    />
+                  </group>
+                </Canvas>
+
+                {phase === "exploring" && (
+                  <div className="preview-interact-bar">
+                    {nearbyInteractableAsset && nearbyInteractions.length > 0 ? (
+                      <InteractionOverlay
+                        asset={nearbyInteractableAsset}
+                        actions={nearbyInteractions}
+                        onPerformAction={performInteraction}
+                      />
+                    ) : (
+                      <p className="empty preview-walk-hint">
+                        {placedAssets.length === 0
+                          ? "Place objects in the Space panel first."
+                          : "Walk near an object (arrow keys or WASD)."}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {phase === "exploring" && (
+                <>
+                  <p className="control-hint preview-move-hint">
+                    Click the scene, then use arrow keys or WASD to move.
+                  </p>
+
+                  {winCondition && !winMet && (
+                    <p className="control-hint preview-win-progress">
+                      Win: {winCondition.actionLabel} · {winCondition.assetName}
+                    </p>
+                  )}
+
+                  {canLeaveSpace && (
+                    <button
+                      type="button"
+                      className="leave-space-button secondary-button"
+                      onClick={leaveSpace}
+                    >
+                      Leave
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
-
-          <p className="control-hint preview-move-hint">
-            Click the scene, then use arrow keys or WASD to move.
-          </p>
-
-          {winCondition && !winMet && (
-            <p className="control-hint preview-win-progress">
-              Win: {winCondition.actionLabel} · {winCondition.assetName}
-            </p>
-          )}
-
-          {canLeaveSpace && (
-            <button
-              type="button"
-              className="leave-space-button secondary-button"
-              onClick={leaveSpace}
-            >
-              Leave
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
       {phase === "merged" && currentPassage.type === "space" && (
         <article className="preview-reading preview-merged preview-reading-compact">

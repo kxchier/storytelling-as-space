@@ -1,7 +1,7 @@
-import { useTexture } from "@react-three/drei";
+import { useSafeTexture } from "../hooks/useSafeTexture";
 
 function TexturedMaterial({ textureUrl, fallbackColor }) {
-  const texture = textureUrl ? useTexture(textureUrl) : null;
+  const texture = useSafeTexture(textureUrl);
 
   return (
     <meshStandardMaterial

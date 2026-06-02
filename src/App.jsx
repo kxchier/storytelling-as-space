@@ -46,7 +46,13 @@ function App() {
             aria-label="Story title"
           />
 
-          <button type="button" className="secondary-button" onClick={saveProjectToFile}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              void saveProjectToFile();
+            }}
+          >
             Save
           </button>
           <button

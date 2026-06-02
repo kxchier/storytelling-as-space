@@ -12,5 +12,10 @@ function scaled(value) {
 export const PLAYER_HALF_WIDTH = scaled(0.12) * 0.9;
 export const PLAYER_HALF_DEPTH = scaled(0.085) * 0.9;
 
-export const PLAYER_PROXIMITY_RADIUS =
-  Math.max(PLAYER_HALF_WIDTH, PLAYER_HALF_DEPTH) + 0.08;
+/** Extra reach beyond the player footprint for interaction prompts. */
+export const INTERACTION_PROXIMITY_PADDING = 0.22;
+
+export const PLAYER_INTERACTION_REACH = Math.hypot(
+  PLAYER_HALF_WIDTH,
+  PLAYER_HALF_DEPTH
+);

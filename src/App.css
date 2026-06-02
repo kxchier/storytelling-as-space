@@ -326,16 +326,59 @@ body::before {
   margin-bottom: 12px;
 }
 
-.preview-reader-embedded .preview-room-wrap {
+.unified-preview-panel .collapsible-panel-body {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  min-height: 220px;
-  border-radius: 12px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px 12px 12px;
 }
 
-.preview-reader-embedded .preview-exploring-compact {
+.preview-space-stage--reading {
+  position: relative;
+}
+
+.preview-exploring-preload {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.preview-space-stage--reading .preview-space-invite {
+  position: relative;
+  z-index: 1;
+}
+
+.preview-reader-embedded .preview-space-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-reader-embedded .preview-exploring-compact:not(.preview-exploring-preload) {
   gap: 8px;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-reader-embedded .preview-room-wrap {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border-radius: 12px;
+}
+
+.preview-reader-embedded .preview-move-hint,
+.preview-reader-embedded .preview-win-progress,
+.preview-reader-embedded .leave-space-button {
+  flex-shrink: 0;
 }
 
 .preview-reader-embedded .leave-space-button {
@@ -1464,6 +1507,7 @@ button:hover:not(:disabled) {
 .preview-room-wrap {
   position: relative;
   height: 480px;
+  min-height: 200px;
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--color-border-strong);
