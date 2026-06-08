@@ -79,7 +79,7 @@ function SpaceAuthoringLayout({
       const assets = await parseSceneExcerpt(sceneText);
       if (assets.length === 0) {
         patchSpace({ assetCandidates: [], selectedAssetId: null });
-        setParseError("No objects found in the scene. Try naming specific items.");
+        setParseError("No props found in the scene. Try naming specific items.");
         return;
       }
 
@@ -268,7 +268,7 @@ function SpaceAuthoringLayout({
           className="space-title-input"
           value={title}
           onChange={(event) => patchSpace({ title: event.target.value })}
-          aria-label="Space title"
+          aria-label="Vignette title"
         />
         <label className="space-status-label">
           Status
@@ -282,10 +282,15 @@ function SpaceAuthoringLayout({
         </label>
       </div>
 
+      <p className="control-hint space-workflow-hint">
+        <strong>Scenography workflow:</strong> extract props → stage &amp; block →
+        define cues → set exit cue → rehearse in Preview
+      </p>
+
       <div className="space-authoring-main">
         <div className="space-room-column">
           <section className="room-panel panel space-room-panel">
-            <h2>Isometric room</h2>
+            <h2>Isometric vignette</h2>
             <div
               className="room-canvas"
               tabIndex={embedded ? undefined : -1}
@@ -338,19 +343,19 @@ function SpaceAuthoringLayout({
 
           {embedded ? (
             <section className="panel interaction-panel space-interaction-panel">
-              <h2>Playtest</h2>
+              <h2>Rehearsal</h2>
               <p className="control-hint interaction-panel-placeholder">
-                Open Preview, choose your space passage, click Enter scene, then
-                walk and interact there. This room is for placing and editing
-                objects.
+                Open Preview, choose your vignette passage, click Begin performance,
+                then walk and trigger cues there. This panel is for staging and
+                editing props.
               </p>
             </section>
           ) : (
             <section className="panel interaction-panel space-interaction-panel">
-              <h2>Playtest</h2>
+              <h2>Rehearsal</h2>
               {winCondition && (
                 <p className="control-hint interaction-win-hint">
-                  Win: {winCondition.actionLabel} on {winCondition.assetName}
+                  Exit cue: {winCondition.actionLabel} on {winCondition.assetName}
                 </p>
               )}
               <div className="interaction-panel-content">
@@ -362,7 +367,7 @@ function SpaceAuthoringLayout({
                   />
                 ) : (
                   <p className="empty interaction-panel-placeholder">
-                    Click the room, then walk near a placed object (arrow keys or
+                    Click the vignette, then walk near a staged prop (arrow keys or
                     WASD).
                   </p>
                 )}
@@ -394,12 +399,12 @@ function SpaceAuthoringLayout({
           />
 
           <section className="panel selected-asset-panel">
-            <h2>Selected asset</h2>
+            <h2>Selected prop</h2>
             {selectedAsset ? (
               <div className="asset-editor">
                 <p className="asset-name">{selectedAsset.name}</p>
                 <p className="asset-category">{selectedAsset.category}</p>
-                <label>Asset prompt</label>
+                <label>Prop image prompt</label>
                 <textarea
                   value={selectedAsset.prompt}
                   onChange={(event) =>
@@ -426,13 +431,13 @@ function SpaceAuthoringLayout({
                       className="place-button"
                       onClick={() => placeAsset(selectedAsset)}
                     >
-                      Place in room
+                      Stage prop
                     </button>
                   </>
                 )}
               </div>
             ) : (
-              <p className="empty">Parse the scene above, then select an object.</p>
+              <p className="empty">Extract props above, then select a prop.</p>
             )}
           </section>
 

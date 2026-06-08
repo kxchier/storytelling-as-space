@@ -6,7 +6,7 @@ function InteractionOverlay({ asset, actions, onPerformAction }) {
   return (
     <div className="interaction-overlay">
       <span className="interaction-overlay-title">Near {asset.name}</span>
-      <div className="interaction-action-list" role="group" aria-label="Actions">
+      <div className="interaction-action-list" role="group" aria-label="Interaction cues">
         {actions.map((action) => (
           <button
             key={action.id}

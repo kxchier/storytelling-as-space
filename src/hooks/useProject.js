@@ -149,7 +149,7 @@ export function useProject(initialProject = createEmptyProject()) {
           spaces: {
             ...previous.spaces,
             [spaceId]: createEmptySpace(spaceId, {
-              title: title || "Explorable space",
+              title: title || "Untitled vignette",
               sceneText,
             }),
           },
@@ -176,7 +176,7 @@ export function useProject(initialProject = createEmptyProject()) {
         spaces: {
           ...previous.spaces,
           [passageId]: createEmptySpace(passageId, {
-            title: "Explorable space",
+            title: "Untitled vignette",
             sceneText,
           }),
         },
@@ -321,7 +321,7 @@ export function useProject(initialProject = createEmptyProject()) {
       console.warn("Some images could not be embedded in the save file:", failures);
       window.alert(
         `Saved, but ${failures.length} image(s) could not be embedded (${names}). ` +
-          "Re-open the space and regenerate those assets, then save again while the images still load in the browser."
+          "Re-open the vignette and regenerate those props, then save again while the images still load in the browser."
       );
     }
 

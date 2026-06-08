@@ -206,7 +206,11 @@ function PreviewReader({
             Reset
           </button>
           <span className="preview-embedded-phase">
-            {phase === "exploring" ? "In scene" : phase === "merged" ? "Merged" : "Reading"}
+            {phase === "exploring"
+              ? "In performance"
+              : phase === "merged"
+                ? "Rewritten scene"
+                : "Reading"}
           </span>
         </div>
       )}
@@ -229,7 +233,7 @@ function PreviewReader({
                   <p className="preview-scene-epigraph">{sceneText}</p>
                 )}
                 <button type="button" onClick={enterSpace}>
-                  Enter scene
+                  Begin performance
                 </button>
               </article>
             )}
@@ -244,7 +248,7 @@ function PreviewReader({
                 className="preview-room-wrap"
                 tabIndex={phase === "exploring" ? 0 : -1}
                 role="application"
-                aria-label="Scene preview — use arrow keys or WASD to walk"
+                aria-label="Vignette rehearsal — use arrow keys or WASD to walk"
                 aria-hidden={phase !== "exploring"}
                 onPointerDown={phase === "exploring" ? focusPreviewRoom : undefined}
               >
@@ -298,8 +302,8 @@ function PreviewReader({
                     ) : (
                       <p className="empty preview-walk-hint">
                         {placedAssets.length === 0
-                          ? "Place objects in the Space panel first."
-                          : "Walk near an object (arrow keys or WASD)."}
+                          ? "Stage props in the Scenography panel first."
+                          : "Walk near a prop (arrow keys or WASD)."}
                       </p>
                     )}
                   </div>
@@ -309,12 +313,12 @@ function PreviewReader({
               {phase === "exploring" && (
                 <>
                   <p className="control-hint preview-move-hint">
-                    Click the scene, then use arrow keys or WASD to move.
+                    Click the vignette, then use arrow keys or WASD to move.
                   </p>
 
                   {winCondition && !winMet && (
                     <p className="control-hint preview-win-progress">
-                      Win: {winCondition.actionLabel} · {winCondition.assetName}
+                      Exit cue: {winCondition.actionLabel} · {winCondition.assetName}
                     </p>
                   )}
 

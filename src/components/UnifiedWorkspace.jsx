@@ -64,7 +64,7 @@ function UnifiedWorkspace({
     makePassageExplorable({
       passageId,
       selectedText,
-      title: title || "Explorable space",
+      title: title || "Untitled vignette",
     });
   }
 
@@ -85,13 +85,13 @@ function UnifiedWorkspace({
         value={activeSpaceId ?? ""}
         onChange={(event) => handleSelectSpace(event.target.value)}
         onClick={(event) => event.stopPropagation()}
-        aria-label="Active space"
+        aria-label="Active vignette"
       >
         {spacePassages.map((passage) => {
           const space = project.spaces[passage.id];
           return (
             <option key={passage.id} value={passage.id}>
-              {space?.title ?? "Explorable space"}
+              {space?.title ?? "Untitled vignette"}
             </option>
           );
         })}
@@ -140,7 +140,7 @@ function UnifiedWorkspace({
 
   const rightColumn = (
     <CollapsiblePanel
-      title="Space"
+      title="Scenography"
       expanded={panels.space}
       onToggle={() => togglePanel("space")}
       className="unified-space-panel"
@@ -156,7 +156,7 @@ function UnifiedWorkspace({
         />
       ) : (
         <p className="empty unified-space-empty">
-          Select text and choose &ldquo;Make explorable,&rdquo; or pick a space from
+          Select text and choose &ldquo;Stage passage,&rdquo; or pick a vignette from
           the dropdown.
         </p>
       )}

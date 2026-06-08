@@ -5,11 +5,11 @@ function ActionHistoryPanel({
 }) {
   return (
     <>
-      <h2>Action History</h2>
+      <h2>Performance history</h2>
 
       {actionHistory.length === 0 ? (
         <p className="empty">
-          Walk near an object and choose an action. Each choice is recorded here.
+          Walk near a prop and trigger a cue. Each performance line is recorded here.
         </p>
       ) : (
         <>
@@ -29,17 +29,17 @@ function ActionHistoryPanel({
             className="secondary-button clear-history-button"
             onClick={onClearHistory}
           >
-            Clear action history
+            Clear performance history
           </button>
         </>
       )}
 
-      <h2 className="section-divider-heading">Woven passage preview</h2>
+      <h2 className="section-divider-heading">Rewritten scene preview</h2>
 
       <div className="narrative-blank-card">
         <p className="narrative-blank-text">
           {livingNarrative ||
-            "Lead-in plus exploration lines — the scene section is replaced on exit."}
+            "Lead-in plus performance lines — the scene section is replaced on exit."}
         </p>
       </div>
     </>

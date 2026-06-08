@@ -27,7 +27,7 @@ function PassageActions({
         onMouseDown={(event) => event.stopPropagation()}
         onClick={() => onAddBelow("space", passageId)}
       >
-        + Space below
+        + Vignette below
       </button>
       <button
         type="button"
@@ -35,7 +35,7 @@ function PassageActions({
         onMouseDown={(event) => event.stopPropagation()}
         onClick={() => onDelete(passageId)}
         disabled={!canDelete}
-        aria-label={`Delete ${passageType === "space" ? "space" : "text"} section`}
+        aria-label={`Delete ${passageType === "space" ? "vignette" : "text"} section`}
       >
         Delete
       </button>
@@ -125,15 +125,15 @@ function ManuscriptEditor({
                   aria-hidden="true"
                 />
                 <div className="manuscript-passage-space-meta">
-                  <span className="manuscript-passage-kind">Isometric space</span>
+                  <span className="manuscript-passage-kind">Spatial vignette</span>
                   <span className="manuscript-space-title">
-                    {space?.title ?? "Explorable space"}
+                    {space?.title ?? "Untitled vignette"}
                   </span>
                   <span className="manuscript-space-meta">
-                    {space?.placedAssets?.length ?? 0} objects ·{" "}
+                    {space?.placedAssets?.length ?? 0} props ·{" "}
                     {winCondition
-                      ? `win: ${winCondition.actionLabel} · ${winCondition.assetName}`
-                      : "no win set"}{" "}
+                      ? `exit cue: ${winCondition.actionLabel} · ${winCondition.assetName}`
+                      : "no exit cue"}{" "}
                     · {space?.status ?? "draft"}
                   </span>
                 </div>
@@ -145,15 +145,16 @@ function ManuscriptEditor({
                       onMouseDown={(event) => event.stopPropagation()}
                       onClick={() => onOpenSpace(passage.id)}
                     >
-                      Edit space
+                      Edit scenography
                     </button>
                   )}
                 </div>
               </div>
 
               <p className="manuscript-space-hint control-hint">
-                Prose before this block is regular text above. This field is only
-                what the reader steps into — replaced on exit by their actions.
+                Entrance prose lives in the fixed passage above. This field is the
+                scene the reader steps into — replaced on exit by performance lines
+                from their cues.
               </p>
 
               <textarea
@@ -231,7 +232,7 @@ function ManuscriptEditor({
           className="secondary-button"
           onClick={() => onAddPassage?.("space")}
         >
-          Add isometric space
+          Add spatial vignette
         </button>
       </div>
 

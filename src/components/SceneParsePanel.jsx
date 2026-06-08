@@ -17,8 +17,8 @@ function SceneParsePanel({
     <section className="panel scene-parse-panel">
       <h2>Scene</h2>
       <p className="control-hint">
-        What the reader steps into — write setup prose in the fixed passage above.
-        Replaced on exit by exploration lines.
+        What the reader steps into — write entrance prose in the fixed passage above.
+        Replaced on exit by performance lines.
       </p>
 
       <textarea
@@ -35,14 +35,14 @@ function SceneParsePanel({
         onClick={onParse}
         disabled={loadingParse}
       >
-        {loadingParse ? "Parsing..." : "Parse scene"}
+        {loadingParse ? "Extracting..." : "Extract props"}
       </button>
 
       {parseError && <p className="parse-error">{parseError}</p>}
 
       {assetCandidates.length > 0 && (
         <>
-          <p className="control-hint scene-parse-objects-label">Objects found</p>
+          <p className="control-hint scene-parse-objects-label">Props in prose</p>
           <div className="candidate-list scene-parse-candidates">
             {assetCandidates.map((asset) => (
               <button
@@ -66,12 +66,12 @@ function SceneParsePanel({
       <div className="scene-parse-win">
         {winCondition ? (
           <p className="scene-win-set">
-            Win: <strong>{winCondition.actionLabel}</strong> on{" "}
+            Exit cue: <strong>{winCondition.actionLabel}</strong> on{" "}
             <strong>{winCondition.assetName}</strong>
           </p>
         ) : (
           <p className="empty scene-win-unset">
-            Mark one interaction as &ldquo;Completes space&rdquo; on a placed object.
+            Mark one cue as &ldquo;Exit cue&rdquo; on a staged prop.
           </p>
         )}
       </div>

@@ -7,7 +7,7 @@ export function createId() {
 
 export function createEmptySpace(
   passageId,
-  { title = "Untitled space", excerpt = "", sceneText = "" } = {}
+  { title = "Untitled vignette", excerpt = "", sceneText = "" } = {}
 ) {
   return {
     passageId,
@@ -114,7 +114,7 @@ export function createEmptyProject() {
     ],
     spaces: {
       [spaceId]: createEmptySpace(spaceId, {
-        title: "Bedroom",
+        title: "Train car",
         sceneText,
       }),
     },
@@ -134,7 +134,7 @@ export function createFixedPassage(text = "") {
   };
 }
 
-export function createSpacePassageEntry({ sceneText = "", title = "Untitled space" } = {}) {
+export function createSpacePassageEntry({ sceneText = "", title = "Untitled vignette" } = {}) {
   const passageId = createId();
   const passage = normalizePassage({
     id: passageId,

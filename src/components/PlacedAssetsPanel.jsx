@@ -11,10 +11,10 @@ function PlacedAssetsPanel({
 }) {
   return (
     <>
-      <h2>Placed Assets</h2>
+      <h2>Staged props</h2>
 
       {placedAssets.length === 0 ? (
-        <p className="empty">Placed assets will appear here.</p>
+        <p className="empty">Staged props will appear here.</p>
       ) : (
         <div className="placed-list">
           {placedAssets.map((asset) => (
@@ -39,8 +39,8 @@ function PlacedAssetsPanel({
                 <div className="hitbox-controls">
                   <p className="control-hint">
                     {asset.isLocked
-                      ? "This asset is locked. Unlock it to move or edit it."
-                      : "Drag the asset in the room to move it."}
+                      ? "This prop is locked. Unlock it to move or edit it."
+                      : "Drag the prop on stage to move it."}
                   </p>
 
                   <button
@@ -50,7 +50,7 @@ function PlacedAssetsPanel({
                       onToggleLock(asset.placedId);
                     }}
                   >
-                    {asset.isLocked ? "🔓 Unlock Object" : "🔒 Lock Object"}
+                    {asset.isLocked ? "🔓 Unlock prop" : "🔒 Lock prop"}
                   </button>
 
                   <div className="hitbox-toggle-row">
@@ -66,7 +66,7 @@ function PlacedAssetsPanel({
                         }
                         onClick={(event) => event.stopPropagation()}
                       />{" "}
-                      Collidable
+                      Blocking
                     </label>
                   </div>
 

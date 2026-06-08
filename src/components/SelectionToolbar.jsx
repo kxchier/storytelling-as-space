@@ -22,10 +22,10 @@ function SelectionToolbar({
             Preview from here
           </button>
           <button type="button" onClick={onEditSpace}>
-            Edit space
+            Edit scenography
           </button>
           <button type="button" className="secondary-button" onClick={onRemoveSpace}>
-            Remove space
+            Remove vignette
           </button>
         </>
       ) : (
@@ -35,7 +35,7 @@ function SelectionToolbar({
           </button>
           {canMakeExplorable && (
             <button type="button" onClick={onMakeExplorable}>
-              Make explorable
+              Stage passage
             </button>
           )}
         </>

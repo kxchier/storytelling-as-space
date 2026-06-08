@@ -30,7 +30,7 @@ function InteractionActionsEditor({
     onChange([
       ...resolvedInteractions,
       createInteractionAction({
-        label: "New action",
+        label: "New cue",
         narrativeTemplate: `She interacted with the {name}.`,
       }),
     ]);
@@ -38,23 +38,23 @@ function InteractionActionsEditor({
 
   return (
     <div className="hitbox-group interaction-actions-editor">
-      <p className="hitbox-group-title">Interaction actions</p>
+      <p className="hitbox-group-title">Interaction cues</p>
       <p className="control-hint">
-        These appear when the player walks near {assetName || "this object"}.
-        Use {"{name}"} in the story line for the object name.
+        These appear when the reader walks near {assetName || "this prop"}.
+        Use {"{name}"} in the performance line for the prop name.
       </p>
 
       {resolvedInteractions.length === 0 ? (
-        <p className="empty">No actions yet. Add one to make this object interactive.</p>
+        <p className="empty">No cues yet. Add one to make this prop interactive.</p>
       ) : (
         <div className="interaction-action-cards">
           {resolvedInteractions.map((action, index) => (
             <article key={action.id} className="interaction-action-card">
-              <label className="control-hint">Action {index + 1}</label>
+              <label className="control-hint">Cue {index + 1}</label>
               <input
                 type="text"
                 className="interaction-input"
-                placeholder="Button label, e.g. Open"
+                placeholder="Cue label, e.g. Open"
                 value={action.label}
                 disabled={disabled}
                 onChange={(event) =>
@@ -63,7 +63,7 @@ function InteractionActionsEditor({
                 onClick={(event) => event.stopPropagation()}
               />
 
-              <label className="control-hint">Story line</label>
+              <label className="control-hint">Performance line</label>
               <textarea
                 className="interaction-input"
                 placeholder="She opened the {name}."
@@ -86,7 +86,7 @@ function InteractionActionsEditor({
                   }
                   onClick={(event) => event.stopPropagation()}
                 />
-                Completes space (win condition)
+                Exit cue
               </label>
 
               <button
@@ -115,7 +115,7 @@ function InteractionActionsEditor({
             addAction();
           }}
         >
-          Add action
+          Add cue
         </button>
       </div>
     </div>

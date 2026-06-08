@@ -10,7 +10,7 @@ export async function parseSceneExcerpt(sceneText) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error ?? "Failed to parse scene");
+    throw new Error(data.error ?? "Failed to extract props");
   }
 
   if (!Array.isArray(data.assets)) {
