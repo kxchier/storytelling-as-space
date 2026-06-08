@@ -2,14 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import Replicate from "replicate";
-import { spawn } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
 import { parseSceneInNode } from "./parseSceneNode.js";
 import { buildAssetPrompt } from "./assetPrompt.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { PythonParserWorker } from "./pythonParserWorker.js";
 
 dotenv.config();
 
@@ -34,46 +29,11 @@ function attachPrompts(assets) {
   }));
 }
 
-function parseSceneWithPython(sceneText) {
-  return new Promise((resolve, reject) => {
-    const pythonScriptPath = path.join(__dirname, "parseScene.py");
-    const python = spawn("python3", [pythonScriptPath]);
+const pythonParserWorker = new PythonParserWorker();
 
-    let output = "";
-    let errorOutput = "";
-
-    python.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    python.stderr.on("data", (data) => {
-      errorOutput += data.toString();
-    });
-
-    python.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(errorOutput || "Python parser failed"));
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(output);
-
-        if (!Array.isArray(parsed.assets)) {
-          reject(new Error("Python parser returned invalid assets"));
-          return;
-        }
-
-        resolve(parsed.assets);
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    python.stdin.write(sceneText);
-    python.stdin.end();
-  });
-}
+pythonParserWorker.warmup().catch((error) => {
+  console.warn("Python parser warmup failed:", error.message);
+});
 
 app.post("/parse-scene", async (req, res) => {
   const { sceneText } = req.body;
@@ -86,7 +46,7 @@ app.post("/parse-scene", async (req, res) => {
     let assets;
 
     try {
-      assets = await parseSceneWithPython(sceneText);
+      assets = await pythonParserWorker.parse(sceneText);
     } catch (pythonError) {
       console.warn(
         "Python parser unavailable, using Node fallback:",
