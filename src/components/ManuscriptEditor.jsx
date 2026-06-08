@@ -145,7 +145,7 @@ function ManuscriptEditor({
                       onMouseDown={(event) => event.stopPropagation()}
                       onClick={() => onOpenSpace(passage.id)}
                     >
-                      Edit scenography
+                      Edit 
                     </button>
                   )}
                 </div>

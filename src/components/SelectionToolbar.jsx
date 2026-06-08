@@ -22,7 +22,7 @@ function SelectionToolbar({
             Preview from here
           </button>
           <button type="button" onClick={onEditSpace}>
-            Edit scenography
+            Edit 
           </button>
           <button type="button" className="secondary-button" onClick={onRemoveSpace}>
             Remove vignette
